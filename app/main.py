@@ -51,6 +51,14 @@ async def startup_event():
     start_scheduler()
     logger.info("✅ 定时任务启动完成")
     
+    # 启动每小时飞书汇报（需要配置 Webhook）
+    try:
+        from app.services.hourly_report import start_hourly_report
+        start_hourly_report()
+        logger.info("✅ 每小时飞书汇报已启动")
+    except Exception as e:
+        logger.warning(f"⚠️ 飞书汇报启动失败：{e}")
+    
     logger.info("🎉 服务启动成功！")
     logger.info("📖 API 文档：http://localhost:8080/docs")
     logger.info("📊 健康检查：http://localhost:8080/health")
