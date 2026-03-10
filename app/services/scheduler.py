@@ -4,66 +4,86 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
+from datetime import datetime
 
-class Scheduler:
-    """定时任务调度器"""
-    
-    def __init__(self):
-        self.scheduler = AsyncIOScheduler()
-    
-    def start(self):
-        """启动调度器"""
-        # 添加定时任务
-        self._add_check_orders_job()
-        self._add_price_update_job()
-        self._add_cleanup_job()
-        
-        self.scheduler.start()
-        logger.info("✅ 定时任务调度器已启动")
-    
-    def shutdown(self):
-        """关闭调度器"""
-        self.scheduler.shutdown()
-        logger.info("👋 定时任务调度器已关闭")
-    
-    def _add_check_orders_job(self):
-        """添加订单检查任务（每 5 分钟）"""
-        async def check_orders():
-            logger.info("⏰ 执行订单检查任务...")
-            # 这里调用自动发货服务
-        
-        self.scheduler.add_job(
-            check_orders,
-            CronTrigger(minute='*/5'),
-            id='check_orders',
-            name='检查新订单'
-        )
-    
-    def _add_price_update_job(self):
-        """添加自动改价任务（每 30 分钟）"""
-        async def update_prices():
-            logger.info("⏰ 执行自动改价任务...")
-            # 这里调用自动改价服务
-        
-        self.scheduler.add_job(
-            update_prices,
-            CronTrigger(minute='*/30'),
-            id='update_prices',
-            name='自动改价'
-        )
-    
-    def _add_cleanup_job(self):
-        """添加清理任务（每天凌晨 3 点）"""
-        async def cleanup():
-            logger.info("⏰ 执行清理任务...")
-            # 清理过期数据、日志等
-        
-        self.scheduler.add_job(
-            cleanup,
-            CronTrigger(hour=3, minute=0),
-            id='cleanup',
-            name='清理数据'
-        )
+scheduler = AsyncIOScheduler()
 
-# 全局调度器实例
-scheduler = Scheduler()
+async def check_orders_job():
+    """订单检查任务 - 每 5 分钟"""
+    try:
+        logger.info("⏰ 执行订单检查任务...")
+        
+        from app.db import SessionLocal
+        from app.services.xianyu_api import xianyu_manager
+        from app.services.auto_delivery_service import AutoDeliveryService
+        from app.models import Account
+        
+        db = SessionLocal()
+        
+        # 获取所有活跃账号
+        accounts = db.query(Account).filter(Account.status == "active").all()
+        
+        for account in accounts:
+            client = xianyu_manager.get_client(str(account.id))
+            if client:
+                delivery_service = AutoDeliveryService(db)
+                count = await delivery_service.check_and_deliver(account.id, client)
+                if count > 0:
+                    logger.info(f"✅ 账号 {account.name} 自动发货 {count} 单")
+        
+        db.close()
+        
+    except Exception as e:
+        logger.error(f"❌ 订单检查任务失败：{e}")
+
+async def update_prices_job():
+    """自动改价任务 - 每 30 分钟"""
+    try:
+        logger.info("⏰ 执行自动改价任务...")
+        # TODO: 实现自动改价逻辑
+    except Exception as e:
+        logger.error(f"❌ 自动改价任务失败：{e}")
+
+async def cleanup_job():
+    """清理任务 - 每天凌晨 3 点"""
+    try:
+        logger.info("⏰ 执行清理任务...")
+        # TODO: 清理过期数据
+    except Exception as e:
+        logger.error(f"❌ 清理任务失败：{e}")
+
+def start_scheduler():
+    """启动调度器"""
+    # 订单检查 - 每 5 分钟
+    scheduler.add_job(
+        check_orders_job,
+        'interval',
+        minutes=5,
+        id='check_orders',
+        name='检查订单'
+    )
+    
+    # 自动改价 - 每 30 分钟
+    scheduler.add_job(
+        update_prices_job,
+        'interval',
+        minutes=30,
+        id='update_prices',
+        name='自动改价'
+    )
+    
+    # 清理任务 - 每天凌晨 3 点
+    scheduler.add_job(
+        cleanup_job,
+        CronTrigger(hour=3, minute=0),
+        id='cleanup',
+        name='清理数据'
+    )
+    
+    scheduler.start()
+    logger.info("✅ 定时任务调度器已启动")
+
+def shutdown_scheduler():
+    """关闭调度器"""
+    scheduler.shutdown()
+    logger.info("👋 定时任务调度器已关闭")

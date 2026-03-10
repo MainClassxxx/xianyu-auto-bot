@@ -1,10 +1,15 @@
 """
-账号管理 API
+账号管理 API - 真实实现
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.orm import Session
+from app.db import get_db
+from app.models import Account
+from app.services.xianyu_api import xianyu_manager
+from loguru import logger
 
 router = APIRouter(prefix="/api/accounts", tags=["账号管理"])
 
@@ -24,40 +29,134 @@ class AccountResponse(BaseModel):
     device_id: str
     status: str
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 @router.get("", response_model=List[AccountResponse])
-async def get_accounts(status: Optional[str] = None):
+async def get_accounts(status: Optional[str] = None, db: Session = Depends(get_db)):
     """获取账号列表"""
-    # TODO: 从数据库获取
-    return []
+    query = db.query(Account)
+    if status:
+        query = query.filter(Account.status == status)
+    return query.all()
 
 @router.post("", response_model=AccountResponse)
-async def create_account(account: AccountCreate):
+async def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     """添加账号"""
-    # TODO: 保存到数据库
-    return {"id": 1, **account.dict(), "status": "active", "created_at": datetime.now()}
+    # 1. 创建账号记录
+    db_account = Account(
+        name=account.name,
+        cookie=account.cookie,
+        device_id=account.device_id or f"device_{datetime.now().timestamp()}",
+        status="active"
+    )
+    db.add(db_account)
+    db.commit()
+    db.refresh(db_account)
+    
+    # 2. 创建闲鱼客户端并测试连接
+    client = xianyu_manager.XianyuClient(account.cookie, db_account.device_id)
+    is_valid = await client.test_connection()
+    
+    if not is_valid:
+        db_account.status = "inactive"
+        db.commit()
+        raise HTTPException(status_code=400, detail="Cookie 无效，无法连接闲鱼")
+    
+    # 3. 添加到管理器
+    xianyu_manager.add_client(str(db_account.id), account.cookie, db_account.device_id)
+    
+    logger.info(f"✅ 添加账号：{account.name}")
+    return db_account
 
 @router.get("/{account_id}")
-async def get_account(account_id: int):
+async def get_account(account_id: int, db: Session = Depends(get_db)):
     """获取账号详情"""
-    return {"id": account_id, "name": "测试账号", "status": "active"}
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    return account
 
 @router.put("/{account_id}")
-async def update_account(account_id: int, account: AccountUpdate):
+async def update_account(account_id: int, account_update: AccountUpdate, db: Session = Depends(get_db)):
     """更新账号"""
-    return {"success": True}
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    
+    if account_update.name:
+        account.name = account_update.name
+    if account_update.cookie:
+        account.cookie = account_update.cookie
+    if account_update.status:
+        account.status = account_update.status
+    
+    db.commit()
+    db.refresh(account)
+    
+    # 如果更新了 cookie，重新创建客户端
+    if account_update.cookie:
+        client = xianyu_manager.XianyuClient(account_update.cookie, account.device_id)
+        is_valid = await client.test_connection()
+        if is_valid:
+            xianyu_manager.add_client(str(account.id), account_update.cookie, account.device_id)
+    
+    return account
 
 @router.delete("/{account_id}")
-async def delete_account(account_id: int):
+async def delete_account(account_id: int, db: Session = Depends(get_db)):
     """删除账号"""
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    
+    db.delete(account)
+    db.commit()
+    
+    # 从管理器移除
+    xianyu_manager.remove_client(str(account_id))
+    
     return {"success": True}
 
 @router.post("/{account_id}/refresh")
-async def refresh_account(account_id: int):
+async def refresh_account(account_id: int, db: Session = Depends(get_db)):
     """刷新账号状态"""
-    return {"success": True}
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    
+    # 测试连接
+    client = xianyu_manager.XianyuClient(account.cookie, account.device_id)
+    is_valid = await client.test_connection()
+    
+    account.status = "active" if is_valid else "inactive"
+    db.commit()
+    
+    if is_valid:
+        xianyu_manager.add_client(str(account.id), account.cookie, account.device_id)
+    
+    return {
+        "success": True,
+        "status": account.status,
+        "account_info": client.account_info
+    }
 
 @router.post("/{account_id}/restart")
-async def restart_account(account_id: int):
+async def restart_account(account_id: int, db: Session = Depends(get_db)):
     """重启账号连接"""
-    return {"success": True}
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    
+    # 移除旧客户端
+    xianyu_manager.remove_client(str(account_id))
+    
+    # 创建新客户端
+    client = xianyu_manager.XianyuClient(account.cookie, account.device_id)
+    is_valid = await client.test_connection()
+    
+    if is_valid:
+        xianyu_manager.add_client(str(account.id), account.cookie, account.device_id)
+    
+    return {"success": is_valid}

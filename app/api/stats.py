@@ -1,17 +1,12 @@
 """
 数据统计 API
 """
-from fastapi import APIRouter, HTTPException
-from typing import Optional
-from datetime import datetime
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/stats", tags=["数据统计"])
 
 @router.get("/overview")
-async def get_overview(
-    account_id: Optional[int] = None,
-    days: int = 7
-):
+async def get_overview():
     """获取概览统计"""
     return {
         "total_items": 0,
@@ -21,37 +16,11 @@ async def get_overview(
     }
 
 @router.get("/orders")
-async def get_order_stats(
-    account_id: Optional[int] = None,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None
-):
+async def get_order_stats():
     """获取订单统计"""
-    return {
-        "total": 0,
-        "by_status": {},
-        "by_day": []
-    }
+    return {"total": 0}
 
 @router.get("/revenue")
-async def get_revenue_stats(
-    account_id: Optional[int] = None,
-    period: str = "month"  # day/week/month/year
-):
+async def get_revenue_stats():
     """获取收入统计"""
-    return {
-        "total": 0.0,
-        "by_period": []
-    }
-
-@router.get("/messages")
-async def get_message_stats(
-    account_id: Optional[int] = None,
-    days: int = 7
-):
-    """获取消息统计"""
-    return {
-        "total_sent": 0,
-        "total_received": 0,
-        "auto_reply_count": 0
-    }
+    return {"total": 0.0}
