@@ -1,0 +1,47 @@
+# 忽略 Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 环境和配置
+.env
+.env.local
+*.local
+
+# 数据文件
+data/*.db
+data/*.log
+logs/
+
+# 构建输出
+dist/
+build/
+*.egg-info/
+
+# Docker
+*.pid
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+
+# macOS
+.DS_Store
+
+# 项目特定
+*.pid
+*.seed
+*.pid.lock

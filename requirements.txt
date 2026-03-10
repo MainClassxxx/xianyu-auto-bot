@@ -1,0 +1,41 @@
+# Web 框架
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 闲鱼 API 相关
+httpx==0.26.0
+websockets==12.0
+aiohttp==3.9.1
+
+# 图像处理 (电影票截图检测)
+Pillow==10.2.0
+pytesseract==0.3.10
+opencv-python-headless==4.9.0.80
+numpy==1.26.3
+
+# OCR (百度/腾讯 OCR API)
+baidu-aip==4.16.12
+
+# 数据库
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# 定时任务
+apscheduler==3.10.4
+
+# 通知推送
+requests==2.31.0
+
+# 工具库
+python-dotenv==1.0.0
+loguru==0.7.2
+pyyaml==6.0.1
+
+# AI 相关 (可选)
+openai==1.10.0
+
+# 自动化 (买票功能)
+playwright==1.40.0

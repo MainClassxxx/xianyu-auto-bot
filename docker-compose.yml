@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  xianyu-bot:
+    build: .
+    container_name: xianyu-auto-bot
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    environment:
+      - DATABASE_URL=sqlite:///data/xianyu_bot.db
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - DEBUG=false
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 可选：添加 Redis 用于缓存和任务队列
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: xianyu-redis
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+# volumes:
+#   redis_data:
