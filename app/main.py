@@ -86,7 +86,7 @@ async def health_check():
     return {"status": "healthy"}
 
 # 导入并注册所有 API 路由
-from app.api import accounts, items, orders, conversations, auto_reply, auto_delivery, notifications, stats
+from app.api import accounts, items, orders, conversations, auto_reply, auto_delivery, notifications, stats, auth
 
 app.include_router(accounts.router)
 app.include_router(items.router)
@@ -96,6 +96,7 @@ app.include_router(auto_reply.router)
 app.include_router(auto_delivery.router)
 app.include_router(notifications.router)
 app.include_router(stats.router)
+app.include_router(auth.router)
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -41,5 +41,8 @@ pyyaml>=6.0.0
 # AI 相关 (可选)
 openai>=1.10.0
 
-# 自动化 (买票功能)
+# 自动化 (买票功能/登录)
 playwright>=1.40.0
+
+# OAuth 登录
+aiohttp>=3.9.0
