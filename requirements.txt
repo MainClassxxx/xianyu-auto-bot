@@ -17,7 +17,7 @@ opencv-python-headless==4.9.0.80
 numpy==1.26.3
 
 # OCR (百度/腾讯 OCR API)
-baidu-aip==4.16.12
+baidu-aip==4.16.13
 
 # 数据库
 sqlalchemy==2.0.25
