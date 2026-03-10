@@ -11,7 +11,7 @@
         </div>
       </template>
 
-      <el-table :data="accounts" style="width: 100%">
+      <el-table :data="accountStore.accounts" v-loading="accountStore.loading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="账号备注" width="150" />
         <el-table-column prop="device_id" label="设备 ID" width="150" />
@@ -25,8 +25,8 @@
         <el-table-column prop="created_at" label="添加时间" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="refreshAccount(row)">刷新</el-button>
-            <el-button type="danger" size="small" @click="deleteAccount(row)">删除</el-button>
+            <el-button type="primary" size="small" @click="handleRefresh(row)">刷新</el-button>
+            <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -52,27 +52,20 @@
       </el-form>
       <template #footer>
         <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button type="primary" @click="addAccount">确定</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleAdd">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAccountStore } from '@/store/account'
 
+const accountStore = useAccountStore()
 const showAddDialog = ref(false)
-
-const accounts = ref([
-  {
-    id: 1,
-    name: '主账号',
-    device_id: 'device_001',
-    status: 'active',
-    created_at: '2024-03-10 10:00:00'
-  }
-])
+const submitting = ref(false)
 
 const newAccount = ref({
   name: '',
@@ -80,31 +73,39 @@ const newAccount = ref({
   device_id: ''
 })
 
-const addAccount = async () => {
+onMounted(() => {
+  accountStore.fetchAccounts()
+})
+
+const handleAdd = async () => {
   if (!newAccount.value.cookie) {
     ElMessage.warning('请填写 Cookie')
     return
   }
   
-  // TODO: 调用 API 添加账号
-  accounts.value.push({
-    id: accounts.value.length + 1,
-    ...newAccount.value,
-    status: 'active',
-    created_at: new Date().toLocaleString()
-  })
-  
-  ElMessage.success('账号添加成功')
-  showAddDialog.value = false
-  newAccount.value = { name: '', cookie: '', device_id: '' }
+  submitting.value = true
+  try {
+    await accountStore.addAccount(newAccount.value)
+    ElMessage.success('账号添加成功')
+    showAddDialog.value = false
+    newAccount.value = { name: '', cookie: '', device_id: '' }
+  } catch (error) {
+    ElMessage.error('添加失败：' + error.message)
+  } finally {
+    submitting.value = false
+  }
 }
 
-const refreshAccount = (account) => {
-  ElMessage.info(`刷新账号：${account.name}`)
-  // TODO: 调用 API 刷新账号
+const handleRefresh = async (account) => {
+  try {
+    await accountStore.refreshAccount(account.id)
+    ElMessage.success('刷新成功')
+  } catch (error) {
+    ElMessage.error('刷新失败：' + error.message)
+  }
 }
 
-const deleteAccount = (account) => {
+const handleDelete = (account) => {
   ElMessageBox.confirm(
     `确定要删除账号"${account.name}"吗？`,
     '警告',
@@ -113,9 +114,13 @@ const deleteAccount = (account) => {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    accounts.value = accounts.value.filter(a => a.id !== account.id)
-    ElMessage.success('删除成功')
+  ).then(async () => {
+    try {
+      await accountStore.deleteAccount(account.id)
+      ElMessage.success('删除成功')
+    } catch (error) {
+      ElMessage.error('删除失败：' + error.message)
+    }
   })
 }
 </script>

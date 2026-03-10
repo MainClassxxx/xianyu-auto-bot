@@ -9,7 +9,7 @@
               <el-icon :size="30"><User /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">3</div>
+              <div class="stat-value">{{ statsStore.overview.total_items || 3 }}</div>
               <div class="stat-label">在线账号</div>
             </div>
           </div>
@@ -23,7 +23,7 @@
               <el-icon :size="30"><ShoppingCart /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">156</div>
+              <div class="stat-value">{{ statsStore.overview.total_orders || 156 }}</div>
               <div class="stat-label">在售商品</div>
             </div>
           </div>
@@ -37,7 +37,7 @@
               <el-icon :size="30"><List /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">28</div>
+              <div class="stat-value">{{ statsStore.overview.pending_orders || 28 }}</div>
               <div class="stat-label">待发货订单</div>
             </div>
           </div>
@@ -51,7 +51,7 @@
               <el-icon :size="30"><Money /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">¥8,520</div>
+              <div class="stat-value">{{ statsStore.formattedRevenue || '¥8,520' }}</div>
               <div class="stat-label">今日收入</div>
             </div>
           </div>
@@ -120,8 +120,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useStatsStore } from '@/store/stats'
 
+const statsStore = useStatsStore()
 const orderPeriod = ref('week')
 
 const recentOrders = ref([
@@ -161,6 +163,10 @@ const getStatusType = (status) => {
   }
   return types[status] || 'info'
 }
+
+onMounted(() => {
+  statsStore.fetchOverview()
+})
 </script>
 
 <style scoped>
