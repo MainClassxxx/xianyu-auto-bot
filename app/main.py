@@ -6,18 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import sys
+import os
 
-# 导入所有 API 路由
-from app.api import (
-    accounts,
-    items,
-    orders,
-    conversations,
-    auto_reply,
-    auto_delivery,
-    notifications,
-    stats
-)
+# 设置项目路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 配置日志
 logger.remove()
@@ -41,6 +33,8 @@ app.add_middleware(
 )
 
 # 注册所有 API 路由
+from app.api import accounts, items, orders, conversations, auto_reply, auto_delivery, notifications, stats
+
 app.include_router(accounts.router)
 app.include_router(items.router)
 app.include_router(orders.router)
@@ -54,12 +48,6 @@ app.include_router(stats.router)
 async def startup_event():
     """应用启动时执行"""
     logger.info("🚀 闲鱼自动售货机器人 v2.0 启动中...")
-    
-    # TODO: 初始化数据库
-    # TODO: 加载配置
-    # TODO: 启动定时任务
-    # TODO: 连接闲鱼账号
-    
     logger.info("✅ 服务启动成功！")
     logger.info("📖 API 文档：http://localhost:8080/docs")
     logger.info("📊 健康检查：http://localhost:8080/health")
@@ -68,8 +56,6 @@ async def startup_event():
 async def shutdown_event():
     """应用关闭时执行"""
     logger.info("👋 正在关闭服务...")
-    # TODO: 关闭数据库连接
-    # TODO: 断开闲鱼连接
 
 @app.get("/")
 async def root():
