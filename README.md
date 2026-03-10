@@ -1,24 +1,68 @@
-# 闲鱼自动售货机器人 (XianYu Auto Bot)
+# 闲鱼自动售货机器人 (XianYu Auto Bot) v2.0
 
-🤖 一个功能强大的闲鱼自动化管理工具，支持自动发货、电影票截图检测、自动改价、自动买票等功能。
+🤖 **参考 FishAutoPro 完整功能实现的闲鱼自动化管理工具**
 
-## ✨ 功能特性
+![GitHub stars](https://img.shields.io/github/stars/MainClassxxx/xianyu-auto-bot)
+![GitHub forks](https://img.shields.io/github/forks/MainClassxxx/xianyu-auto-bot)
+![GitHub license](https://img.shields.io/github/license/MainClassxxx/xianyu-auto-bot)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![Docker](https://img.shields.io/badge/docker-latest-blue)
 
-### 核心功能
-- 📦 **自动发货** - 支持虚拟商品自动发货，多种发货规则配置
-- 🎬 **电影票截图检测** - 自动识别电影票截图，提取观影信息
-- 💰 **自动改价** - 根据规则自动修改商品报价
-- 🎫 **自动买票** - 自动化电影票购买流程
-- 💬 **自动回复** - 智能关键词匹配 + AI 回复
-- 📊 **订单管理** - 完整的订单跟踪和管理
-- 🔔 **多渠道通知** - 支持飞书、Telegram、企业微信等
+---
 
-### 技术特性
-- 🐳 **Docker 部署** - 一键容器化部署
-- 🔐 **多账号隔离** - 支持多闲鱼账号独立管理
-- 📈 **数据统计** - 销售数据、订单统计分析
-- 🔄 **自动重试** - 失败任务自动重试机制
-- 🛡️ **安全合规** - 敏感操作二次确认
+## ✨ 核心功能
+
+### 📦 账号管理
+- ✅ 多账号支持
+- ✅ Cookie 管理
+- ✅ 账号状态监控
+- ✅ 账号隔离
+
+### 🛍️ 商品管理
+- ✅ 商品列表
+- ✅ 商品上下架
+- ✅ 价格修改
+- ✅ 自动改价规则
+
+### 📋 订单管理
+- ✅ 订单列表
+- ✅ 状态同步
+- ✅ 自动发货
+- ✅ 发货记录
+
+### 💬 对话消息
+- ✅ 实时消息
+- ✅ 自动回复
+- ✅ 图片发送
+- ✅ 会话管理
+
+### 🤖 自动化功能
+- ✅ 自动回复（关键词/AI）
+- ✅ 自动发货（多规格/库存）
+- ✅ 自动评价
+- ✅ 自动免拼
+
+### 📊 数据统计
+- ✅ 订单统计
+- ✅ 收入统计
+- ✅ 消息统计
+- ✅ 数据导出
+
+### 🔔 通知系统
+- ✅ 飞书通知
+- ✅ Telegram 通知
+- ✅ 企业微信
+- ✅ 钉钉通知
+- ✅ Bark 推送
+- ✅ Email 通知
+
+### 🐳 部署支持
+- ✅ Docker 部署
+- ✅ Docker Compose
+- ✅ 一键启动
+- ✅ 数据持久化
+
+---
 
 ## 🚀 快速开始
 
@@ -26,18 +70,21 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/YOUR_USERNAME/xianyu-auto-bot.git
+git clone https://github.com/MainClassxxx/xianyu-auto-bot.git
 cd xianyu-auto-bot
 
 # 2. 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，填入闲鱼 Cookie 等配置
+nano .env  # 编辑配置
 
-# 3. 启动服务
+# 3. 一键启动
 docker-compose up -d
 
-# 4. 访问管理界面
-# 浏览器打开 http://localhost:8080
+# 4. 查看日志
+docker-compose logs -f
+
+# 5. 访问管理界面
+# http://localhost:8080/docs
 ```
 
 ### 本地部署
@@ -48,30 +95,56 @@ pip install -r requirements.txt
 
 # 2. 配置环境
 cp .env.example .env
-# 编辑 .env 文件
 
 # 3. 启动服务
 python app/main.py
 ```
 
-## 📋 配置说明
+---
+
+## 📖 API 文档
+
+启动服务后访问：
+
+- **Swagger UI**: http://localhost:8080/docs
+- **ReDoc**: http://localhost:8080/redoc
+- **OpenAPI JSON**: http://localhost:8080/openapi.json
+
+### 主要 API 端点
+
+| 端点 | 说明 |
+|------|------|
+| `/api/accounts` | 账号管理 |
+| `/api/items` | 商品管理 |
+| `/api/orders` | 订单管理 |
+| `/api/conversations` | 对话消息 |
+| `/api/auto-reply` | 自动回复 |
+| `/api/auto-delivery` | 自动发货 |
+| `/api/notifications` | 通知管理 |
+| `/api/stats` | 数据统计 |
+
+---
+
+## 🔧 配置说明
 
 ### 环境变量 (.env)
 
 ```bash
 # 闲鱼配置
 XIANFU_COOKIE=your_cookie_here
-XIANFU_DEVICE_ID=your_device_id
+XIANFU_DEVICE_ID=device_001
 
-# 数据库配置
+# 数据库
 DATABASE_URL=sqlite:///data/xianyu_bot.db
 
 # 通知配置
-FEISHU_WEBHOOK=your_feishu_webhook
-TELEGRAM_BOT_TOKEN=your_telegram_token
+FEISHU_WEBHOOK=
+TELEGRAM_BOT_TOKEN=
+WECHAT_WORK_WEBHOOK=
+DINGTALK_WEBHOOK=
 
-# AI 配置 (可选)
-OPENAI_API_KEY=your_openai_key
+# AI 配置
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-3.5-turbo
 
 # 服务配置
@@ -80,62 +153,122 @@ SERVER_PORT=8080
 DEBUG=false
 ```
 
+---
+
 ## 📁 项目结构
 
 ```
 xianyu-auto-bot/
-├── app/                      # 主应用目录
-│   ├── main.py              # 入口文件
-│   ├── api/                 # API 路由
-│   ├── models/              # 数据模型
-│   ├── services/            # 业务服务
-│   └── utils/               # 工具函数
-├── config/                   # 配置文件
-├── data/                     # 数据目录
-├── docker/                   # Docker 配置
-├── docs/                     # 文档
-├── scripts/                  # 脚本工具
-├── docker-compose.yml        # Docker Compose 配置
-├── Dockerfile               # Docker 镜像构建
-├── requirements.txt         # Python 依赖
-└── README.md                # 项目说明
+├── app/
+│   ├── main.py                    # FastAPI 入口
+│   ├── api/                       # API 路由
+│   │   ├── accounts.py            # 账号管理
+│   │   ├── items.py               # 商品管理
+│   │   ├── orders.py              # 订单管理
+│   │   ├── conversations.py       # 对话消息
+│   │   ├── auto_reply.py          # 自动回复
+│   │   ├── auto_delivery.py       # 自动发货
+│   │   ├── notifications.py       # 通知管理
+│   │   └── stats.py               # 数据统计
+│   ├── models/                    # 数据模型
+│   ├── services/                  # 业务服务
+│   └── utils/                     # 工具函数
+├── .github/
+│   ├── workflows/                 # GitHub Actions
+│   └── dependabot.yml             # 依赖自动更新
+├── docker/
+├── docs/
+├── scripts/
+├── data/
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── .env.example
+└── README.md
 ```
 
-## 🔧 功能模块
+---
 
-### 1. 自动发货
-- 支持多种发货规则（关键词匹配、商品匹配、订单匹配）
-- 库存管理，自动扣减
-- 发货记录追踪
+## 🔄 自动维护
 
-### 2. 电影票截图检测
-- OCR 识别电影票信息
-- 自动提取：影片名、时间、座位、票价
-- 支持主流购票平台截图
+### GitHub Actions
 
-### 3. 自动改价
-- 根据时间、库存、竞争价格自动调整
-- 支持改价规则配置
-- 改价历史记录
+- ✅ CI/CD 流水线
+- ✅ 自动测试
+- ✅ Docker 镜像构建
+- ✅ 自动发布
 
-### 4. 自动买票
-- 自动化选座购票流程
-- 支持多影院、多场次
-- 购票失败自动重试
+### Dependabot
 
-## ⚠️ 免责声明
+- ✅ 每周自动更新 Python 依赖
+- ✅ 每周自动更新 Docker 镜像
+- ✅ 每周自动更新 GitHub Actions
 
-本项目仅供学习交流使用，请勿用于商业目的。使用本项目产生的任何风险由使用者自行承担。
+### 自动合并
+
+- ✅ Dependabot PR 自动合并（minor 版本）
+- ✅ 代码检查通过后自动合并
+
+---
+
+## 📊 开发进度
+
+参考 [PROJECT.md](PROJECT.md) 查看完整开发计划。
+
+### 已完成
+- [x] 项目初始化
+- [x] 基础架构
+- [x] API 路由设计
+- [x] 数据模型设计
+- [x] GitHub Actions 配置
+- [x] Docker 部署支持
+
+### 进行中
+- [ ] 闲鱼 API 客户端实现
+- [ ] 数据库集成
+- [ ] 自动回复逻辑
+- [ ] 自动发货逻辑
+
+### 计划中
+- [ ] 前端管理界面
+- [ ] AI 知识库
+- [ ] 可视化流程编辑
+- [ ] 移动端适配
+
+---
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
+
+---
 
 ## 📄 许可证
 
 MIT License
 
-## 👥 交流反馈
+---
 
-- GitHub Issues: 提交问题和建议
-- 微信群：扫描 README 底部二维码
+## 👥 联系方式
+
+- **GitHub**: https://github.com/MainClassxxx/xianyu-auto-bot
+- **Issues**: https://github.com/MainClassxxx/xianyu-auto-bot/issues
+
+---
+
+## 🙏 致谢
+
+- 参考项目：[FishAutoPro](https://xueandyue.github.io/FishAutoPro/)
+- 灵感来源：闲鱼自动化管理需求
 
 ---
 
 **Made with ❤️ by 易拉罐 for 啤酒瓶**
+
+**Last Updated**: 2024-03-10

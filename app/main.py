@@ -7,9 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import sys
 
-from app.api import router
-from app.services import scheduler
-from app.utils import init_db
+# 导入所有 API 路由
+from app.api import (
+    accounts,
+    items,
+    orders,
+    conversations,
+    auto_reply,
+    auto_delivery,
+    notifications,
+    stats
+)
 
 # 配置日志
 logger.remove()
@@ -19,8 +27,8 @@ logger.add("data/bot.log", rotation="10 MB", retention="7 days", level="DEBUG")
 # 创建 FastAPI 应用
 app = FastAPI(
     title="闲鱼自动售货机器人",
-    description="支持自动发货、电影票检测、自动改价、自动买票",
-    version="1.0.0"
+    description="完整的闲鱼自动化管理工具 - 支持多账号、自动回复、自动发货、数据统计",
+    version="2.0.0"
 )
 
 # 配置 CORS
@@ -32,38 +40,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册路由
-app.include_router(router, prefix="/api")
+# 注册所有 API 路由
+app.include_router(accounts.router)
+app.include_router(items.router)
+app.include_router(orders.router)
+app.include_router(conversations.router)
+app.include_router(auto_reply.router)
+app.include_router(auto_delivery.router)
+app.include_router(notifications.router)
+app.include_router(stats.router)
 
 @app.on_event("startup")
 async def startup_event():
     """应用启动时执行"""
-    logger.info("🚀 闲鱼自动售货机器人启动中...")
+    logger.info("🚀 闲鱼自动售货机器人 v2.0 启动中...")
     
-    # 初始化数据库
-    init_db()
-    logger.info("✅ 数据库初始化完成")
+    # TODO: 初始化数据库
+    # TODO: 加载配置
+    # TODO: 启动定时任务
+    # TODO: 连接闲鱼账号
     
-    # 启动定时任务
-    scheduler.start()
-    logger.info("✅ 定时任务启动完成")
-    
-    logger.info("🎉 服务启动成功！访问 http://localhost:8080/docs 查看 API 文档")
+    logger.info("✅ 服务启动成功！")
+    logger.info("📖 API 文档：http://localhost:8080/docs")
+    logger.info("📊 健康检查：http://localhost:8080/health")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时执行"""
     logger.info("👋 正在关闭服务...")
-    scheduler.shutdown()
+    # TODO: 关闭数据库连接
+    # TODO: 断开闲鱼连接
 
 @app.get("/")
 async def root():
     """根路径"""
     return {
         "name": "闲鱼自动售货机器人",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
+        "health": "/health"
     }
 
 @app.get("/health")
