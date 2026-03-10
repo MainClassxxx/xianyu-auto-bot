@@ -71,7 +71,7 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/xianyu-auto-bot:${{ github.sha }}
     
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
         generate_release_notes: true
