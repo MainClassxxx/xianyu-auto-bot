@@ -11,7 +11,7 @@ websockets==12.0
 aiohttp==3.9.1
 
 # 图像处理 (电影票截图检测)
-Pillow==10.2.0
+Pillow==12.1.1
 pytesseract==0.3.10
 opencv-python-headless==4.9.0.80
 numpy==1.26.3
