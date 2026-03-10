@@ -30,7 +30,7 @@ apscheduler==3.10.4
 requests==2.31.0
 
 # 工具库
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 loguru==0.7.2
 pyyaml==6.0.1
 
