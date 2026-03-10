@@ -21,7 +21,7 @@ baidu-aip==4.16.12
 
 # 数据库
 sqlalchemy==2.0.25
-aiosqlite==0.19.0
+aiosqlite==0.22.1
 
 # 定时任务
 apscheduler==3.10.4
