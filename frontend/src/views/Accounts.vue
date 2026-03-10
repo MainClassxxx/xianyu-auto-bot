@@ -138,7 +138,7 @@ onMounted(() => {
 // 打开闲鱼登录
 const openXianyuLogin = async () => {
   try {
-    const response = await axios.post('/api/auth/xianyu', { headless: false })
+    const response = await axios.post('http://localhost:8080/api/auth/xianyu', { headless: false })
     loginSessionId.value = response.data.session_id
     const loginUrl = response.data.login_url
     
@@ -163,7 +163,7 @@ const checkLoginStatus = async () => {
   if (!loginSessionId.value) return
   
   try {
-    const response = await axios.get(`/api/auth/xianyu/${loginSessionId.value}`)
+    const response = await axios.get(`http://localhost:8080/api/auth/xianyu/${loginSessionId.value}`)
     const result = response.data
     
     if (result.status === 'logged_in') {
@@ -207,7 +207,7 @@ const cancelXianyuLogin = () => {
     checkInterval = null
   }
   if (loginSessionId.value) {
-    axios.delete(`/api/auth/xianyu/${loginSessionId.value}`).catch(() => {})
+    axios.delete(`http://localhost:8080/api/auth/xianyu/${loginSessionId.value}`).catch(() => {})
     loginSessionId.value = ''
   }
   loginStatus.value = 'waiting'
