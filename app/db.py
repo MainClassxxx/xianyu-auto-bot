@@ -24,7 +24,9 @@ Base = declarative_base()
 
 def init_db():
     """初始化数据库，创建所有表"""
+    # 确保导入所有模型
     from app.models import Account, Item, Order, Message, AutoReplyRule, DeliveryRule, NotificationChannel, SystemLog
+    from app.models.user import User
     
     # 确保数据目录存在
     os.makedirs("data", exist_ok=True)
