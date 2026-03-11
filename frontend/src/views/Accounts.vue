@@ -154,7 +154,8 @@ const openXianyuLogin = async () => {
     
     ElMessage.info('请在新打开的窗口中登录闲鱼账号')
   } catch (error) {
-    ElMessage.error('创建登录会话失败：' + error.message)
+    console.error('闲鱼登录失败:', error)
+    ElMessage.error('闲鱼登录功能开发中，请使用手动添加 Cookie 方式')
   }
 }
 

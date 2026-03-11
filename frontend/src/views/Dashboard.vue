@@ -199,10 +199,21 @@ async function loadOverview() {
   try {
     const data = await statsApi.getOverview()
     stats.overview = data
-    stats.accounts = await statsApi.getAccountStats()
-    stats.items = await statsApi.getItemStats()
+    try {
+      stats.accounts = await statsApi.getAccountStats()
+    } catch (e) {
+      console.warn('加载账号统计失败:', e)
+      stats.accounts = { total: 0, active: 0, inactive: 0 }
+    }
+    try {
+      stats.items = await statsApi.getItemStats()
+    } catch (e) {
+      console.warn('加载商品统计失败:', e)
+      stats.items = { total: 0, onsale: 0, sold: 0, out: 0 }
+    }
   } catch (error) {
     console.error('加载统计数据失败:', error)
+    stats.overview = { total_revenue: 0, formatted_revenue: '¥0.00', pending_orders: 0 }
   }
 }
 

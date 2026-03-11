@@ -235,3 +235,36 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         "avatar": current_user.avatar,
         "created_at": current_user.created_at
     }
+
+@router.post("/xianyu")
+async def create_xianyu_login_session(
+    headless: bool = True,
+    db: Session = Depends(get_db)
+):
+    """创建闲鱼登录会话（简化实现）"""
+    # TODO: 实现真实的闲鱼扫码登录
+    session_id = f"xianyu_{datetime.now().timestamp()}"
+    return {
+        "session_id": session_id,
+        "login_url": "https://goofish.com/",
+        "message": "请在打开的浏览器窗口中登录闲鱼账号（功能开发中）"
+    }
+
+@router.get("/xianyu/{session_id}")
+async def get_xianyu_login_status(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """检查闲鱼登录状态（简化实现）"""
+    # TODO: 实现真实的登录状态检查
+    return {
+        "status": "waiting",
+        "message": "等待登录（功能开发中）"
+    }
+
+@router.delete("/xianyu/{session_id}")
+async def cancel_xianyu_login_session(
+    session_id: str
+):
+    """取消闲鱼登录会话"""
+    return {"success": True}
