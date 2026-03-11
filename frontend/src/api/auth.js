@@ -11,7 +11,7 @@ export function login(formData) {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
-  })
+  }).then(response => response.data)
 }
 
 /**
@@ -25,7 +25,7 @@ export function register(data) {
     headers: {
       'Content-Type': 'application/json'
     }
-  })
+  }).then(response => response.data)
 }
 
 /**
@@ -38,7 +38,7 @@ export function getCurrentUser() {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }
-  })
+  }).then(response => response.data)
 }
 
 /**
@@ -48,7 +48,7 @@ export function getCaptcha() {
   return axios({
     url: 'http://localhost:8080/api/auth/captcha',
     method: 'post'
-  })
+  }).then(response => response.data)
 }
 
 /**
@@ -62,5 +62,5 @@ export function sendEmailCode(data) {
     headers: {
       'Content-Type': 'application/json'
     }
-  })
+  }).then(response => response.data)
 }
