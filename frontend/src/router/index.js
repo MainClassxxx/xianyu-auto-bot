@@ -92,6 +92,8 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
+  console.log('路由守卫:', to.path, 'from:', from.path)
+  
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 闲鱼机器人` : '闲鱼自动售货机器人'
   
@@ -99,16 +101,21 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false
   const isLoggedIn = userStore.isLoggedIn
   
+  console.log('requiresAuth:', requiresAuth, 'isLoggedIn:', isLoggedIn)
+  
   if (requiresAuth && !isLoggedIn) {
     // 需要登录但未登录，跳转到登录页
+    console.log('未登录，跳转到登录页')
     next({
       path: '/login',
       query: { redirect: to.fullPath }
     })
   } else if (to.path === '/login' && isLoggedIn) {
     // 已登录访问登录页，重定向到首页
+    console.log('已登录，跳转到仪表盘')
     next({ path: '/dashboard' })
   } else {
+    console.log('允许访问')
     next()
   }
 })

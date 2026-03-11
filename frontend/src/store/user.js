@@ -15,14 +15,24 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true
     try {
       const response = await authApi.login(formData)
-      token.value = response.access_token
-      user.value = response.user_info
       
-      localStorage.setItem('token', response.access_token)
-      localStorage.setItem('user', JSON.stringify(response.user_info))
-      
-      return response
+      // 确保 response 中有 access_token
+      if (response && response.access_token) {
+        token.value = response.access_token
+        user.value = response.user_info
+        
+        // 存储到 localStorage
+        localStorage.setItem('token', response.access_token)
+        localStorage.setItem('user', JSON.stringify(response.user_info))
+        
+        console.log('登录成功，token 已存储:', response.access_token.substring(0, 20) + '...')
+        
+        return response
+      } else {
+        throw new Error('登录响应格式错误')
+      }
     } catch (error) {
+      console.error('登录失败:', error)
       throw error
     } finally {
       loading.value = false
@@ -69,11 +79,16 @@ export const useUserStore = defineStore('user', () => {
 
   // 初始化时从本地存储恢复用户信息
   function init() {
+    const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
-    if (savedUser && token.value) {
+    
+    if (savedToken && savedUser) {
       try {
+        token.value = savedToken
         user.value = JSON.parse(savedUser)
+        console.log('从本地存储恢复登录状态')
       } catch (e) {
+        localStorage.removeItem('token')
         localStorage.removeItem('user')
       }
     }
