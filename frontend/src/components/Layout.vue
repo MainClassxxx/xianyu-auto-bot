@@ -102,10 +102,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/store/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const menuItems = [
   { path: '/dashboard', title: '仪表盘', icon: 'DataLine' },
@@ -125,16 +127,46 @@ const currentPageTitle = computed(() => {
   return item?.title || '仪表盘'
 })
 
-const handleCommand = (command) => {
+const handleCommand = async (command) => {
   if (command === 'logout') {
-    ElMessage.success('退出登录成功')
-    router.push('/login')
+    try {
+      await ElMessageBox.confirm(
+        '确定要退出登录吗？',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      
+      // 清除用户状态
+      userStore.logout()
+      
+      // 清除所有 localStorage
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      
+      console.log('退出登录：已清除所有状态')
+      
+      ElMessage.success('退出登录成功')
+      
+      // 延迟一下确保状态已清除
+      setTimeout(() => {
+        router.replace('/login')
+      }, 300)
+      
+    } catch (error) {
+      // 用户取消退出
+      console.log('用户取消退出')
+    }
   } else if (command === 'settings') {
     router.push('/settings')
-  } else {
-    ElMessage.info('功能开发中')
+  } else if (command === 'profile') {
+    ElMessage.info('个人中心开发中')
   }
 }
+</script>
 </script>
 
 <style scoped>
