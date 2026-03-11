@@ -72,7 +72,7 @@
       <div class="xianyu-login-container">
         <el-alert
           title="在打开的浏览器窗口中登录闲鱼账号"
-          description="登录成功后，系统将自动获取 Cookie 并添加账号"
+          description="登录成功后，点击下方的'我已登录完成'按钮"
           type="info"
           :closable="false"
           show-icon
@@ -82,6 +82,10 @@
           <div v-if="loginStatus === 'waiting'" class="login-waiting">
             <el-icon class="is-loading" :size="50"><Loading /></el-icon>
             <p>等待登录...</p>
+            <el-button type="primary" @click="showCompleteDialog">
+              <el-icon><Check /></el-icon>
+              我已登录完成
+            </el-button>
           </div>
           
           <div v-if="loginStatus === 'success'" class="login-success">
@@ -98,11 +102,70 @@
         
         <div class="login-actions">
           <el-button @click="cancelXianyuLogin">取消</el-button>
-          <el-button type="primary" :loading="loginStatus === 'waiting'" @click="checkLoginStatus">
-            我已登录完成
-          </el-button>
         </div>
       </div>
+    </el-dialog>
+
+    <!-- 手动完成登录对话框 -->
+    <el-dialog
+      v-model="showCompleteDlg"
+      title="完成闲鱼登录"
+      width="600px"
+    >
+      <el-form :model="completeForm" label-width="100px">
+        <el-form-item label="账号备注">
+          <el-input v-model="completeForm.nick" placeholder="例如：主账号" />
+        </el-form-item>
+        <el-form-item label="Cookie" required>
+          <el-input
+            v-model="completeForm.cookie"
+            type="textarea"
+            :rows="5"
+            placeholder="按 F12 打开开发者工具 → Network → 复制 Cookie"
+          />
+          <el-link type="primary" style="margin-top: 8px;" @click="showCookieGuide = true">
+            如何获取 Cookie？
+          </el-link>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCompleteDlg = false">取消</el-button>
+        <el-button type="primary" :loading="completing" @click="submitComplete">
+          完成登录
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Cookie 获取指引 -->
+    <el-dialog
+      v-model="showCookieGuide"
+      title="如何获取 Cookie"
+      width="700px"
+    >
+      <div class="cookie-guide">
+        <h4>📝 步骤：</h4>
+        <ol>
+          <li>在刚才打开的窗口中登录闲鱼账号</li>
+          <li>按 <kbd>F12</kbd> 打开开发者工具</li>
+          <li>切换到 <kbd>Network</kbd> 标签</li>
+          <li>刷新页面或点击任意商品</li>
+          <li>在请求列表中找到任意请求</li>
+          <li>在右侧 Headers 中找到 <kbd>Cookie</kbd> 字段</li>
+          <li>复制整个 Cookie 值并粘贴到上方输入框</li>
+        </ol>
+
+        <el-alert
+          title="💡 提示"
+          description="Cookie 是敏感信息，请妥善保管，不要分享给他人"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-top: 16px;"
+        />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="showCookieGuide = false">我知道了</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -129,6 +192,15 @@ const newAccount = ref({
   name: '',
   cookie: '',
   device_id: ''
+})
+
+// 手动完成登录相关
+const showCompleteDlg = ref(false)
+const showCookieGuide = ref(false)
+const completing = ref(false)
+const completeForm = ref({
+  nick: '',
+  cookie: ''
 })
 
 onMounted(() => {
@@ -187,7 +259,44 @@ const checkLoginStatus = async () => {
   }
 }
 
-// 从登录添加账号
+// 手动完成登录
+const showCompleteDialog = () => {
+  completeForm.value = { nick: '', cookie: '' }
+  showCompleteDlg.value = true
+}
+
+const submitComplete = async () => {
+  if (!completeForm.value.cookie) {
+    ElMessage.warning('请填写 Cookie')
+    return
+  }
+
+  completing.value = true
+  try {
+    // 调用后端 API 标记为已登录
+    await axios.post(
+      `http://localhost:8080/api/auth/xianyu/${loginSessionId.value}/complete`,
+      null,
+      {
+        params: {
+          cookie: completeForm.value.cookie,
+          nick: completeForm.value.nick || '闲鱼用户'
+        }
+      }
+    )
+
+    // 添加账号
+    await addAccountFromLogin(completeForm.value.cookie, {
+      nick: completeForm.value.nick || '闲鱼用户'
+    })
+
+    showCompleteDlg.value = false
+  } catch (error) {
+    ElMessage.error('完成登录失败：' + error.message)
+  } finally {
+    completing.value = false
+  }
+}
 const addAccountFromLogin = async (cookie, user_info) => {
   try {
     await accountStore.addAccount({

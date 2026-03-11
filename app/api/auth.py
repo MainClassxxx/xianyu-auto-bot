@@ -30,6 +30,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 # 验证码存储（生产环境应该用 Redis）
 verification_codes = {}
 
+# 闲鱼登录会话存储（简化实现）
+xianyu_sessions = {}
+
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -241,13 +244,21 @@ async def create_xianyu_login_session(
     headless: bool = True,
     db: Session = Depends(get_db)
 ):
-    """创建闲鱼登录会话（简化实现）"""
-    # TODO: 实现真实的闲鱼扫码登录
-    session_id = f"xianyu_{datetime.now().timestamp()}"
+    """创建闲鱼登录会话"""
+    session_id = f"xianyu_{int(datetime.now().timestamp())}"
+    
+    # 存储会话状态
+    xianyu_sessions[session_id] = {
+        "status": "waiting",
+        "created_at": datetime.now(),
+        "cookie": None,
+        "user_info": None
+    }
+    
     return {
         "session_id": session_id,
         "login_url": "https://goofish.com/",
-        "message": "请在打开的浏览器窗口中登录闲鱼账号（功能开发中）"
+        "message": "请在新打开的浏览器窗口中登录闲鱼账号"
     }
 
 @router.get("/xianyu/{session_id}")
@@ -255,11 +266,46 @@ async def get_xianyu_login_status(
     session_id: str,
     db: Session = Depends(get_db)
 ):
-    """检查闲鱼登录状态（简化实现）"""
-    # TODO: 实现真实的登录状态检查
+    """检查闲鱼登录状态"""
+    session = xianyu_sessions.get(session_id)
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    
+    # 如果状态是 logged_in，返回成功
+    if session["status"] == "logged_in":
+        return {
+            "status": "logged_in",
+            "cookie": session["cookie"],
+            "user_info": session["user_info"]
+        }
+    
+    # 否则返回等待状态
     return {
         "status": "waiting",
-        "message": "等待登录（功能开发中）"
+        "message": "等待登录完成"
+    }
+
+@router.post("/xianyu/{session_id}/complete")
+async def complete_xianyu_login(
+    session_id: str,
+    cookie: str,
+    nick: str = "闲鱼用户"
+):
+    """手动完成闲鱼登录（用于测试）"""
+    session = xianyu_sessions.get(session_id)
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    
+    # 更新会话状态为已登录
+    session["status"] = "logged_in"
+    session["cookie"] = cookie
+    session["user_info"] = {"nick": nick}
+    
+    return {
+        "success": True,
+        "message": "登录成功"
     }
 
 @router.delete("/xianyu/{session_id}")
@@ -267,4 +313,6 @@ async def cancel_xianyu_login_session(
     session_id: str
 ):
     """取消闲鱼登录会话"""
+    if session_id in xianyu_sessions:
+        del xianyu_sessions[session_id]
     return {"success": True}
