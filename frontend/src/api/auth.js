@@ -1,13 +1,16 @@
-import request from '@/api'
+import axios from 'axios'
 
 /**
- * 用户登录
+ * 用户登录（使用 form-data 格式）
  */
 export function login(formData) {
-  return request({
-    url: '/api/auth/login',
+  return axios({
+    url: 'http://localhost:8080/api/auth/login',
     method: 'post',
-    data: formData
+    data: formData,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
   })
 }
 
@@ -16,7 +19,7 @@ export function login(formData) {
  */
 export function register(data) {
   return request({
-    url: '/api/auth/register',
+    url: '/auth/register',
     method: 'post',
     data
   })
@@ -27,7 +30,7 @@ export function register(data) {
  */
 export function getCurrentUser() {
   return request({
-    url: '/api/auth/me',
+    url: '/auth/me',
     method: 'get'
   })
 }
@@ -37,7 +40,7 @@ export function getCurrentUser() {
  */
 export function getCaptcha() {
   return request({
-    url: '/api/auth/captcha',
+    url: '/auth/captcha',
     method: 'post'
   })
 }
@@ -47,7 +50,7 @@ export function getCaptcha() {
  */
 export function sendEmailCode(data) {
   return request({
-    url: '/api/auth/send-email-code',
+    url: '/auth/send-email-code',
     method: 'post',
     data
   })
