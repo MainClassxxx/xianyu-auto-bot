@@ -529,12 +529,14 @@ const confirmDisclaimer = () => {
 .input-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 16px;
+  padding: 16px 24px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-wrapper:focus-within {
@@ -546,16 +548,23 @@ const confirmDisclaimer = () => {
 .input-icon {
   color: rgba(255, 255, 255, 0.6);
   font-size: 20px;
+  flex-shrink: 0;
+}
+
+.custom-input {
+  flex: 1;
 }
 
 .custom-input :deep(.el-input__wrapper) {
   background: transparent;
   box-shadow: none;
+  padding: 0;
 }
 
 .custom-input :deep(.el-input__inner) {
   color: #fff;
   font-size: 15px;
+  padding: 0;
 }
 
 .custom-input :deep(.el-input__inner::placeholder) {
