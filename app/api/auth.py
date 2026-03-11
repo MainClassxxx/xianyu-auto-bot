@@ -12,7 +12,7 @@ import random
 import string
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.models import User
+from app.models.user import User
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
 

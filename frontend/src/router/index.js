@@ -1,11 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/components/Layout.vue'
+import { useUserStore } from '@/store/user'
 
 const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { title: '登录', requiresAuth: false }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Register.vue'),
+    meta: { title: '注册', requiresAuth: false }
+  },
   {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
+    meta: { requiresAuth: true },
     children: [
       {
         path: '/dashboard',
@@ -74,6 +88,29 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  // 设置页面标题
+  document.title = to.meta.title ? `${to.meta.title} - 闲鱼机器人` : '闲鱼自动售货机器人'
+  
+  const userStore = useUserStore()
+  const requiresAuth = to.meta.requiresAuth !== false
+  const isLoggedIn = userStore.isLoggedIn
+  
+  if (requiresAuth && !isLoggedIn) {
+    // 需要登录但未登录，跳转到登录页
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
+  } else if (to.path === '/login' && isLoggedIn) {
+    // 已登录访问登录页，重定向到首页
+    next({ path: '/dashboard' })
+  } else {
+    next()
+  }
 })
 
 export default router

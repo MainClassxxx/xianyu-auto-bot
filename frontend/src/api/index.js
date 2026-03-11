@@ -1,5 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+import router from '@/router'
 
 // 创建 axios 实例
 const api = axios.create({
@@ -13,6 +15,10 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   config => {
+    const userStore = useUserStore()
+    if (userStore.token) {
+      config.headers.Authorization = `Bearer ${userStore.token}`
+    }
     return config
   },
   error => {
@@ -27,8 +33,16 @@ api.interceptors.response.use(
     return response.data
   },
   error => {
-    console.error('响应错误:', error)
-    ElMessage.error(error.message || '请求失败')
+    // 401 错误，token 过期或无效
+    if (error.response?.status === 401) {
+      const userStore = useUserStore()
+      userStore.logout()
+      ElMessage.error('登录已过期，请重新登录')
+      router.push('/login')
+    } else {
+      const message = error.response?.data?.detail || error.message || '请求失败'
+      ElMessage.error(message)
+    }
     return Promise.reject(error)
   }
 )

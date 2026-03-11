@@ -7,8 +7,8 @@ from loguru import logger
 from datetime import datetime
 import httpx
 
-# 飞书 Webhook（需要啤酒瓶配置）
-FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK_HERE"
+# 飞书 Webhook
+FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/31d2d24a-c849-43b2-9be0-3d0798815ab8"
 
 # 进度追踪
 progress_data = {
