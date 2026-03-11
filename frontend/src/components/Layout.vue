@@ -167,7 +167,6 @@ const handleCommand = async (command) => {
   }
 }
 </script>
-</script>
 
 <style scoped>
 .layout-container {
