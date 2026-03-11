@@ -18,10 +18,13 @@ export function login(formData) {
  * 用户注册
  */
 export function register(data) {
-  return request({
-    url: '/auth/register',
+  return axios({
+    url: 'http://localhost:8080/api/auth/register',
     method: 'post',
-    data
+    data: data,
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
 }
 
@@ -29,9 +32,12 @@ export function register(data) {
  * 获取当前用户信息
  */
 export function getCurrentUser() {
-  return request({
-    url: '/auth/me',
-    method: 'get'
+  return axios({
+    url: 'http://localhost:8080/api/auth/me',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
   })
 }
 
@@ -39,8 +45,8 @@ export function getCurrentUser() {
  * 获取图形验证码
  */
 export function getCaptcha() {
-  return request({
-    url: '/auth/captcha',
+  return axios({
+    url: 'http://localhost:8080/api/auth/captcha',
     method: 'post'
   })
 }
@@ -49,9 +55,12 @@ export function getCaptcha() {
  * 发送邮箱验证码
  */
 export function sendEmailCode(data) {
-  return request({
-    url: '/auth/send-email-code',
+  return axios({
+    url: 'http://localhost:8080/api/auth/send-email-code',
     method: 'post',
-    data
+    data: data,
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
 }

@@ -262,26 +262,39 @@ const handleLogin = async () => {
       formData.append('username', loginForm.username)
       formData.append('password', loginForm.password)
 
+      console.log('开始登录，用户名:', loginForm.username)
+      
       const response = await userStore.login(formData)
       
-      console.log('登录成功:', response)
+      console.log('登录成功，响应:', response)
+      console.log('Token:', response?.access_token)
       
       ElMessage.success('登录成功！欢迎回来')
       
-      // 延迟一下确保 token 存储完成
-      setTimeout(() => {
-        // 检查是否有 redirect 参数
-        const redirect = route.query.redirect
-        if (redirect) {
-          router.push(redirect)
-        } else {
-          router.push('/dashboard')
-        }
-      }, 300)
+      // 强制刷新一次确保状态更新
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // 检查是否有 redirect 参数
+      const redirect = route.query.redirect
+      console.log('redirect:', redirect)
+      
+      if (redirect) {
+        router.push(redirect)
+      } else {
+        router.push('/dashboard')
+      }
       
     } catch (error) {
       console.error('登录失败:', error)
-      const errorMsg = error.response?.data?.detail || '登录失败，请检查用户名和密码'
+      console.error('错误响应:', error.response)
+      
+      let errorMsg = '登录失败'
+      if (error.response?.data?.detail) {
+        errorMsg = error.response.data.detail
+      } else if (error.message) {
+        errorMsg = error.message
+      }
+      
       ElMessage.error(errorMsg)
     } finally {
       loading.value = false
