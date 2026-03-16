@@ -12,6 +12,7 @@ ModelBase = declarative_base()
 # 导入所有模型（方便统一创建表）
 from app.models.user import User, APILog, AdminOperationLog
 from app.models.membership import MembershipOrder, MembershipGrantLog
+from app.models.referral import ReferralLink, ReferralRecord, UserBalance, BalanceTransaction, RechargeOrder
 
 class Account(ModelBase):
     """闲鱼账号"""

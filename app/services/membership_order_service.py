@@ -91,9 +91,10 @@ class MembershipOrderService:
             "expire_at": order.expire_at
         }
     
-    def pay_order(self, order_no: str, transaction_id: str = None) -> Dict:
+    def pay_order(self, order_no: str, transaction_id: str = None, use_balance: bool = False) -> Dict:
         """支付订单并开通会员"""
         from app.models.membership import MembershipOrder
+        from app.services.referral_service import BalanceService
         
         order = self.db.query(MembershipOrder).filter(
             MembershipOrder.order_no == order_no
@@ -105,16 +106,38 @@ class MembershipOrderService:
         if order.status != "pending":
             raise ValueError(f"订单状态不正确：{order.status}")
         
+        user = self.db.query(User).filter(User.id == order.user_id).first()
+        if not user:
+            raise ValueError("用户不存在")
+        
+        # 根据支付方式处理
+        if order.payment_method == "balance" or use_balance:
+            # 使用余额支付
+            balance_service = BalanceService(self.db)
+            
+            if not balance_service.use_balance(
+                user_id=user.id,
+                amount=order.price,
+                order_no=order_no,
+                description=f"购买{order.level}会员-{order.plan}"
+            ):
+                raise ValueError("余额不足")
+            
+            order.transaction_id = f"BAL{datetime.now().timestamp()}"
+        else:
+            # 第三方支付
+            order.transaction_id = transaction_id or f"TXN{datetime.now().timestamp()}"
+        
         # 更新订单状态
         order.status = "paid"
         order.paid_at = datetime.now()
-        order.transaction_id = transaction_id or f"TXN{datetime.now().timestamp()}"
         
         # 开通会员
-        user = self.db.query(User).filter(User.id == order.user_id).first()
-        if user:
-            self.membership_service.upgrade_membership(user, order.level, order.days)
-            logger.info(f"✅ 用户 {user.username} 已开通 {order.level} 会员，{order.days}天")
+        self.membership_service.upgrade_membership(user, order.level, order.days)
+        logger.info(f"✅ 用户 {user.username} 已开通 {order.level} 会员，{order.days}天")
+        
+        # 追踪推广购买（如果有）
+        self.track_referral_purchase(user, order_no, order.price)
         
         self.db.commit()
         
@@ -127,6 +150,16 @@ class MembershipOrderService:
             "days": order.days,
             "paid_at": order.paid_at
         }
+    
+    def track_referral_purchase(self, user: User, order_no: str, order_amount: float):
+        """追踪推广购买"""
+        try:
+            from app.services.referral_service import ReferralService
+            referral_service = ReferralService(self.db)
+            referral_service.track_purchase(user, order_no, order_amount)
+            logger.info(f"🔗 已追踪推广购买：{order_no}")
+        except Exception as e:
+            logger.error(f"追踪推广购买失败：{e}")
     
     def get_user_orders(self, user_id: int, page: int = 1, page_size: int = 20) -> Dict:
         """获取用户订单列表"""
