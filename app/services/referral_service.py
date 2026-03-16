@@ -305,7 +305,7 @@ class BalanceService:
         }
     
     def confirm_recharge(self, order_no: str, transaction_id: str = None) -> Dict:
-        """确认充值"""
+        """确认充值并追踪推广返利"""
         order = self.db.query(RechargeOrder).filter(
             RechargeOrder.order_no == order_no
         ).first()
@@ -349,6 +349,9 @@ class BalanceService:
         
         logger.info(f"✅ 充值成功：{order.username} 充值 ¥{order.amount}, 实际入账 ¥{total_amount}")
         
+        # 追踪推广充值返利（30%）
+        self.track_referral_recharge(order, order.amount)
+        
         return {
             "success": True,
             "order_no": order_no,
@@ -357,6 +360,24 @@ class BalanceService:
             "total_amount": total_amount,
             "paid_at": order.paid_at
         }
+    
+    def track_referral_recharge(self, order, amount: float):
+        """追踪推广充值返利"""
+        try:
+            from app.models.user import User
+            user = self.db.query(User).filter(User.id == order.user_id).first()
+            if user:
+                from app.services.referral_service import ReferralService
+                referral_service = ReferralService(self.db)
+                referral_service.track_purchase(
+                    user=user,
+                    order_no=order.order_no,
+                    order_amount=amount,
+                    order_type="recharge"
+                )
+                logger.info(f"🔗 已追踪推广充值返利：{order.order_no}")
+        except Exception as e:
+            logger.error(f"追踪推广充值返利失败：{e}")
     
     def get_or_create_balance_by_id(self, user_id: int) -> UserBalance:
         """通过用户 ID 获取或创建余额账户"""

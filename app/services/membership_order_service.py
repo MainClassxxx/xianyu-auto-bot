@@ -151,15 +151,15 @@ class MembershipOrderService:
             "paid_at": order.paid_at
         }
     
-    def track_referral_purchase(self, user: User, order_no: str, order_amount: float):
-        """追踪推广购买"""
+    def track_referral_purchase(self, user: User, order_no: str, order_amount: float, order_type: str = "membership"):
+        """追踪推广购买/充值"""
         try:
             from app.services.referral_service import ReferralService
             referral_service = ReferralService(self.db)
-            referral_service.track_purchase(user, order_no, order_amount)
-            logger.info(f"🔗 已追踪推广购买：{order_no}")
+            referral_service.track_purchase(user, order_no, order_amount, order_type)
+            logger.info(f"🔗 已追踪推广{order_type}：{order_no}")
         except Exception as e:
-            logger.error(f"追踪推广购买失败：{e}")
+            logger.error(f"追踪推广失败：{e}")
     
     def get_user_orders(self, user_id: int, page: int = 1, page_size: int = 20) -> Dict:
         """获取用户订单列表"""
