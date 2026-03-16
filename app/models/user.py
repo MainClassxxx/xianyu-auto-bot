@@ -3,9 +3,9 @@
 """
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from datetime import datetime
-from app.db import Base
+from . import ModelBase
 
-class User(Base):
+class User(ModelBase):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)

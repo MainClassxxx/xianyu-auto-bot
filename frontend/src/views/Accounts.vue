@@ -62,111 +62,48 @@
       </template>
     </el-dialog>
 
-    <!-- 闲鱼登录对话框 -->
+    <!-- 闲鱼扫码登录对话框 -->
     <el-dialog
       v-model="showXianyuLogin"
-      title="闲鱼账号登录"
-      width="800px"
+      title="闲鱼扫码登录"
+      width="450px"
       :close-on-click-modal="false"
     >
       <div class="xianyu-login-container">
-        <el-alert
-          title="在打开的浏览器窗口中登录闲鱼账号"
-          description="登录成功后，点击下方的'我已登录完成'按钮"
-          type="info"
-          :closable="false"
-          show-icon
-        />
-        
-        <div class="login-content">
-          <div v-if="loginStatus === 'waiting'" class="login-waiting">
-            <el-icon class="is-loading" :size="50"><Loading /></el-icon>
-            <p>等待登录...</p>
-            <el-button type="primary" @click="showCompleteDialog">
-              <el-icon><Check /></el-icon>
-              我已登录完成
-            </el-button>
+        <div v-loading="loginStatus === 'waiting'" element-loading-text="等待扫码中...">
+          <!-- 显示二维码 -->
+          <div v-if="qrCodeUrl" class="qr-code-container">
+            <img :src="qrCodeUrl" alt="登录二维码" class="qr-code-image" />
+            <p class="qr-hint">请使用闲鱼 APP 扫描二维码</p>
           </div>
           
-          <div v-if="loginStatus === 'success'" class="login-success">
-            <el-icon :size="50" color="#67C23A"><SuccessFilled /></el-icon>
-            <p>登录成功！</p>
-            <p class="user-info">{{ userInfo.nick }}</p>
-          </div>
-          
-          <div v-if="loginStatus === 'error'" class="login-error">
-            <el-icon :size="50" color="#F56C6C"><CircleClose /></el-icon>
-            <p>登录失败：{{ errorMessage }}</p>
+          <!-- 登录状态 -->
+          <div class="login-status-section">
+            <div v-if="loginStatus === 'waiting'" class="status-waiting">
+              <el-icon class="is-loading" :size="40"><Loading /></el-icon>
+              <p>等待扫码登录...</p>
+            </div>
+            
+            <div v-if="loginStatus === 'success'" class="status-success">
+              <el-icon :size="40" color="#67C23A"><SuccessFilled /></el-icon>
+              <p>登录成功！</p>
+              <p class="user-info">👤 {{ userInfo.nick }}</p>
+            </div>
+            
+            <div v-if="loginStatus === 'error'" class="status-error">
+              <el-icon :size="40" color="#F56C6C"><CircleClose /></el-icon>
+              <p>登录失败：{{ errorMessage }}</p>
+            </div>
           </div>
         </div>
         
         <div class="login-actions">
-          <el-button @click="cancelXianyuLogin">取消</el-button>
+          <el-button @click="cancelXianyuLogin" :disabled="loginStatus === 'success'">取消</el-button>
         </div>
       </div>
     </el-dialog>
 
-    <!-- 手动完成登录对话框 -->
-    <el-dialog
-      v-model="showCompleteDlg"
-      title="完成闲鱼登录"
-      width="600px"
-    >
-      <el-form :model="completeForm" label-width="100px">
-        <el-form-item label="账号备注">
-          <el-input v-model="completeForm.nick" placeholder="例如：主账号" />
-        </el-form-item>
-        <el-form-item label="Cookie" required>
-          <el-input
-            v-model="completeForm.cookie"
-            type="textarea"
-            :rows="5"
-            placeholder="按 F12 打开开发者工具 → Network → 复制 Cookie"
-          />
-          <el-link type="primary" style="margin-top: 8px;" @click="showCookieGuide = true">
-            如何获取 Cookie？
-          </el-link>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCompleteDlg = false">取消</el-button>
-        <el-button type="primary" :loading="completing" @click="submitComplete">
-          完成登录
-        </el-button>
-      </template>
-    </el-dialog>
 
-    <!-- Cookie 获取指引 -->
-    <el-dialog
-      v-model="showCookieGuide"
-      title="如何获取 Cookie"
-      width="700px"
-    >
-      <div class="cookie-guide">
-        <h4>📝 步骤：</h4>
-        <ol>
-          <li>在刚才打开的窗口中登录闲鱼账号</li>
-          <li>按 <kbd>F12</kbd> 打开开发者工具</li>
-          <li>切换到 <kbd>Network</kbd> 标签</li>
-          <li>刷新页面或点击任意商品</li>
-          <li>在请求列表中找到任意请求</li>
-          <li>在右侧 Headers 中找到 <kbd>Cookie</kbd> 字段</li>
-          <li>复制整个 Cookie 值并粘贴到上方输入框</li>
-        </ol>
-
-        <el-alert
-          title="💡 提示"
-          description="Cookie 是敏感信息，请妥善保管，不要分享给他人"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-top: 16px;"
-        />
-      </div>
-      <template #footer>
-        <el-button type="primary" @click="showCookieGuide = false">我知道了</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -186,6 +123,7 @@ const loginSessionId = ref('')
 const loginStatus = ref('waiting') // waiting, success, error
 const userInfo = ref({ nick: '' })
 const errorMessage = ref('')
+const qrCodeUrl = ref('')
 let checkInterval = null
 
 const newAccount = ref({
@@ -194,40 +132,29 @@ const newAccount = ref({
   device_id: ''
 })
 
-// 手动完成登录相关
-const showCompleteDlg = ref(false)
-const showCookieGuide = ref(false)
-const completing = ref(false)
-const completeForm = ref({
-  nick: '',
-  cookie: ''
-})
-
 onMounted(() => {
   accountStore.fetchAccounts()
 })
 
-// 打开闲鱼登录
+// 打开闲鱼登录（扫码登录）
 const openXianyuLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:8080/api/auth/xianyu', { headless: false })
+    const response = await axios.post('http://localhost:8080/api/auth/xianyu/qr', { headless: false })
     loginSessionId.value = response.data.session_id
-    const loginUrl = response.data.login_url
+    const qrCode = response.data.qr_code
     
-    // 打开新窗口
-    window.open(loginUrl, '_blank')
-    
-    // 显示登录对话框
+    // 显示二维码而不是打开新窗口
     showXianyuLogin.value = true
     loginStatus.value = 'waiting'
+    qrCodeUrl.value = qrCode
     
     // 定时检查登录状态
     checkInterval = setInterval(checkLoginStatus, 2000)
     
-    ElMessage.info('请在新打开的窗口中登录闲鱼账号')
+    ElMessage.info('请使用闲鱼 APP 扫描二维码登录')
   } catch (error) {
     console.error('闲鱼登录失败:', error)
-    ElMessage.error('闲鱼登录功能开发中，请使用手动添加 Cookie 方式')
+    ElMessage.error('生成二维码失败：' + error.message)
   }
 }
 
@@ -236,14 +163,27 @@ const checkLoginStatus = async () => {
   if (!loginSessionId.value) return
   
   try {
-    const response = await axios.get(`http://localhost:8080/api/auth/xianyu/${loginSessionId.value}`)
+    const response = await axios.get(`http://localhost:8080/api/auth/xianyu/${loginSessionId.value}/status`)
     const result = response.data
     
     if (result.status === 'logged_in') {
+      // 验证 Cookie 是否有效
+      if (!result.cookie || result.cookie.length < 10) {
+        console.error('Cookie 无效:', result.cookie)
+        loginStatus.value = 'error'
+        errorMessage.value = '登录成功但未获取到有效 Cookie，请重试'
+        clearInterval(checkInterval)
+        return
+      }
+      
       // 登录成功
       clearInterval(checkInterval)
       loginStatus.value = 'success'
       userInfo.value = result.user_info || { nick: 'Unknown' }
+      
+      console.log('✅ 登录成功，准备保存账号')
+      console.log('Cookie 长度:', result.cookie?.length)
+      console.log('用户信息:', result.user_info)
       
       // 自动添加账号
       await addAccountFromLogin(result.cookie, result.user_info)
@@ -253,59 +193,32 @@ const checkLoginStatus = async () => {
         showXianyuLogin.value = false
         cancelXianyuLogin()
       }, 2000)
+    } else if (result.status === 'error') {
+      // 登录出错
+      clearInterval(checkInterval)
+      loginStatus.value = 'error'
+      errorMessage.value = result.message || '未知错误'
     }
   } catch (error) {
     console.error('检查登录状态失败:', error)
   }
 }
 
-// 手动完成登录
-const showCompleteDialog = () => {
-  completeForm.value = { nick: '', cookie: '' }
-  showCompleteDlg.value = true
-}
-
-const submitComplete = async () => {
-  if (!completeForm.value.cookie) {
-    ElMessage.warning('请填写 Cookie')
-    return
-  }
-
-  completing.value = true
-  try {
-    // 调用后端 API 标记为已登录
-    await axios.post(
-      `http://localhost:8080/api/auth/xianyu/${loginSessionId.value}/complete`,
-      null,
-      {
-        params: {
-          cookie: completeForm.value.cookie,
-          nick: completeForm.value.nick || '闲鱼用户'
-        }
-      }
-    )
-
-    // 添加账号
-    await addAccountFromLogin(completeForm.value.cookie, {
-      nick: completeForm.value.nick || '闲鱼用户'
-    })
-
-    showCompleteDlg.value = false
-  } catch (error) {
-    ElMessage.error('完成登录失败：' + error.message)
-  } finally {
-    completing.value = false
-  }
-}
 const addAccountFromLogin = async (cookie, user_info) => {
   try {
+    // 再次验证 Cookie
+    if (!cookie || cookie.trim().length < 10) {
+      throw new Error('Cookie 为空或过短')
+    }
+    
     await accountStore.addAccount({
-      name: user_info.nick || '闲鱼账号',
+      name: user_info?.nick || '闲鱼账号',
       cookie: cookie,
       device_id: `device_${Date.now()}`
     })
-    ElMessage.success('账号添加成功！')
+    ElMessage.success('✅ 账号添加成功！')
   } catch (error) {
+    console.error('添加账号失败:', error)
     ElMessage.error('添加账号失败：' + error.message)
   }
 }
@@ -323,6 +236,7 @@ const cancelXianyuLogin = () => {
   loginStatus.value = 'waiting'
   userInfo.value = { nick: '' }
   errorMessage.value = ''
+  qrCodeUrl.value = ''
 }
 
 const handleAdd = async () => {
@@ -388,31 +302,53 @@ const handleDelete = (account) => {
   padding: 20px;
 }
 
-.login-content {
-  padding: 40px 0;
-  text-align: center;
-}
-
-.login-waiting,
-.login-success,
-.login-error {
+.qr-code-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
+  margin-bottom: 20px;
 }
 
-.login-waiting p,
-.login-success p,
-.login-error p {
-  font-size: 16px;
+.qr-code-image {
+  width: 280px;
+  height: 280px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.qr-hint {
+  font-size: 14px;
+  color: #606266;
+  margin: 0;
+}
+
+.login-status-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.status-waiting,
+.status-success,
+.status-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-waiting p,
+.status-success p,
+.status-error p {
+  font-size: 15px;
   color: #606266;
 }
 
 .user-info {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: #67C23A;
+  margin-top: 5px;
 }
 
 .login-actions {

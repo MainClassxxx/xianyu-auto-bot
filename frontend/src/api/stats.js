@@ -5,7 +5,7 @@ import request from '@/api'
  */
 export function getOverview() {
   return request({
-    url: '/api/stats/overview',
+    url: '/stats/overview',
     method: 'get'
   })
 }
@@ -15,7 +15,7 @@ export function getOverview() {
  */
 export function getOrderStats(days = 7) {
   return request({
-    url: `/api/stats/orders?days=${days}`,
+    url: `/stats/orders?days=${days}`,
     method: 'get'
   })
 }
@@ -25,7 +25,7 @@ export function getOrderStats(days = 7) {
  */
 export function getRevenueStats(days = 7) {
   return request({
-    url: `/api/stats/revenue?days=${days}`,
+    url: `/stats/revenue?days=${days}`,
     method: 'get'
   })
 }
@@ -35,7 +35,7 @@ export function getRevenueStats(days = 7) {
  */
 export function getAccountStats() {
   return request({
-    url: '/api/stats/accounts',
+    url: '/stats/accounts',
     method: 'get'
   })
 }
@@ -45,7 +45,7 @@ export function getAccountStats() {
  */
 export function getItemStats() {
   return request({
-    url: '/api/stats/items',
+    url: '/stats/items',
     method: 'get'
   })
 }

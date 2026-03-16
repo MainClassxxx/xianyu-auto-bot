@@ -1,14 +1,15 @@
 """
-数据模型模块
+数据模型模块 - 使用独立的 Base
 """
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-Base = declarative_base()
+# 独立的 Base（用于模型定义）
+ModelBase = declarative_base()
 
-class Account(Base):
+class Account(ModelBase):
     """闲鱼账号"""
     __tablename__ = 'accounts'
     
@@ -25,7 +26,7 @@ class Account(Base):
     orders = relationship("Order", back_populates="account")
     messages = relationship("Message", back_populates="account")
 
-class Item(Base):
+class Item(ModelBase):
     """商品"""
     __tablename__ = 'items'
     
@@ -44,7 +45,7 @@ class Item(Base):
     
     account = relationship("Account", back_populates="items")
 
-class Order(Base):
+class Order(ModelBase):
     """订单"""
     __tablename__ = 'orders'
     
@@ -61,7 +62,7 @@ class Order(Base):
     
     account = relationship("Account", back_populates="orders")
 
-class Message(Base):
+class Message(ModelBase):
     """消息"""
     __tablename__ = 'messages'
     
@@ -77,7 +78,7 @@ class Message(Base):
     
     account = relationship("Account", back_populates="messages")
 
-class AutoReplyRule(Base):
+class AutoReplyRule(ModelBase):
     """自动回复规则"""
     __tablename__ = 'auto_reply_rules'
     
@@ -93,7 +94,7 @@ class AutoReplyRule(Base):
     priority = Column(Integer, default=0)  # 优先级
     created_at = Column(DateTime, default=datetime.now)
 
-class DeliveryRule(Base):
+class DeliveryRule(ModelBase):
     """自动发货规则"""
     __tablename__ = 'delivery_rules'
     
@@ -108,7 +109,7 @@ class DeliveryRule(Base):
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
 
-class NotificationChannel(Base):
+class NotificationChannel(ModelBase):
     """通知渠道"""
     __tablename__ = 'notification_channels'
     
@@ -120,7 +121,7 @@ class NotificationChannel(Base):
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
 
-class SystemLog(Base):
+class SystemLog(ModelBase):
     """系统日志"""
     __tablename__ = 'system_logs'
     

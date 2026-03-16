@@ -24,15 +24,15 @@ Base = declarative_base()
 
 def init_db():
     """初始化数据库，创建所有表"""
-    # 确保导入所有模型
-    from app.models import Account, Item, Order, Message, AutoReplyRule, DeliveryRule, NotificationChannel, SystemLog
+    # 确保导入所有模型（使用 ModelBase）
+    from app.models import ModelBase, Account, Item, Order, Message, AutoReplyRule, DeliveryRule, NotificationChannel, SystemLog
     from app.models.user import User
     
     # 确保数据目录存在
     os.makedirs("data", exist_ok=True)
     
     # 创建所有表
-    Base.metadata.create_all(bind=engine)
+    ModelBase.metadata.create_all(bind=engine)
     
     logger.info("✅ 数据库初始化完成")
     logger.info(f"📁 数据库路径：{DATABASE_URL}")

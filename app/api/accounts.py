@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Account
-from app.services.xianyu_api import xianyu_manager
+from app.services.xianyu_api import xianyu_manager, XianyuClient
 from loguru import logger
 
 router = APIRouter(prefix="/api/accounts", tags=["账号管理"])
@@ -49,25 +49,31 @@ async def create_account(account: AccountCreate, db: Session = Depends(get_db)):
         name=account.name,
         cookie=account.cookie,
         device_id=account.device_id or f"device_{datetime.now().timestamp()}",
-        status="active"
+        status="active"  # 默认设为 active，让用户自己测试
     )
     db.add(db_account)
     db.commit()
     db.refresh(db_account)
     
-    # 2. 创建闲鱼客户端并测试连接
-    client = xianyu_manager.XianyuClient(account.cookie, db_account.device_id)
-    is_valid = await client.test_connection()
-    
-    if not is_valid:
+    # 2. 尝试测试连接（但不阻止添加）
+    try:
+        client = XianyuClient(account.cookie, db_account.device_id)
+        is_valid = await client.test_connection()
+        
+        if not is_valid:
+            # 标记为 inactive 但不阻止添加
+            db_account.status = "inactive"
+            db.commit()
+            logger.warning(f"⚠️ 账号 {account.name} Cookie 可能无效，已标记为 inactive")
+        else:
+            # 添加到管理器
+            xianyu_manager.add_client(str(db_account.id), account.cookie, db_account.device_id)
+            logger.info(f"✅ 添加账号：{account.name}")
+    except Exception as e:
+        logger.warning(f"⚠️ 测试连接失败：{e}，账号已保存但状态为 inactive")
         db_account.status = "inactive"
         db.commit()
-        raise HTTPException(status_code=400, detail="Cookie 无效，无法连接闲鱼")
     
-    # 3. 添加到管理器
-    xianyu_manager.add_client(str(db_account.id), account.cookie, db_account.device_id)
-    
-    logger.info(f"✅ 添加账号：{account.name}")
     return db_account
 
 @router.get("/{account_id}")
@@ -97,7 +103,7 @@ async def update_account(account_id: int, account_update: AccountUpdate, db: Ses
     
     # 如果更新了 cookie，重新创建客户端
     if account_update.cookie:
-        client = xianyu_manager.XianyuClient(account_update.cookie, account.device_id)
+        client = XianyuClient(account_update.cookie, account.device_id)
         is_valid = await client.test_connection()
         if is_valid:
             xianyu_manager.add_client(str(account.id), account_update.cookie, account.device_id)
@@ -127,7 +133,7 @@ async def refresh_account(account_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="账号不存在")
     
     # 测试连接
-    client = xianyu_manager.XianyuClient(account.cookie, account.device_id)
+    client = XianyuClient(account.cookie, account.device_id)
     is_valid = await client.test_connection()
     
     account.status = "active" if is_valid else "inactive"

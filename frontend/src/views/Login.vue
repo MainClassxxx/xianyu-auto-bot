@@ -92,6 +92,20 @@
             <span>或</span>
           </div>
 
+          <!-- 闲鱼扫码登录 -->
+          <el-form-item>
+            <el-button
+              type="warning"
+              class="xianyu-login-btn"
+              :loading="qrLoading"
+              @click="showQrLogin"
+            >
+              <el-icon><Scanner /></el-icon>
+              <span v-if="!qrLoading">闲鱼扫码登录</span>
+              <span v-else>生成二维码中...</span>
+            </el-button>
+          </el-form-item>
+
           <div class="register-section">
             <span>还没有账号？</span>
             <el-link type="primary" class="register-link" @click="goToRegister">
@@ -148,6 +162,45 @@
         </div>
       </div>
     </div>
+
+    <!-- 闲鱼扫码登录对话框 -->
+    <el-dialog
+      v-model="qrLoginVisible"
+      title="闲鱼扫码登录"
+      class="qr-login-dialog"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <div class="qr-login-content" v-loading="qrLoading">
+        <div v-if="!qrCodeUrl" class="qr-intro">
+          <el-icon class="qr-intro-icon"><Scanner /></el-icon>
+          <p>点击按钮生成登录二维码</p>
+        </div>
+        
+        <div v-else class="qr-code-section">
+          <img :src="qrCodeUrl" alt="登录二维码" class="qr-code-image" />
+          <p class="qr-hint">请使用闲鱼 APP 扫描二维码登录</p>
+          
+          <div class="qr-status" :class="qrStatus">
+            <el-icon v-if="qrStatus === 'waiting'"><Loading /></el-icon>
+            <el-icon v-else-if="qrStatus === 'success'"><CircleCheck /></el-icon>
+            <el-icon v-else-if="qrStatus === 'error'"><CircleClose /></el-icon>
+            <span>{{ statusText }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="cancelQrLogin">取消</el-button>
+        <el-button 
+          v-if="qrStatus === 'success'" 
+          type="primary" 
+          @click="confirmQrLogin"
+        >
+          确认登录
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 免责声明对话框 -->
     <el-dialog
@@ -209,6 +262,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import * as authApi from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -217,6 +271,15 @@ const loginFormRef = ref(null)
 const loading = ref(false)
 const disclaimerVisible = ref(false)
 const agreeTerms = ref(false)
+
+// 扫码登录相关
+const qrLoginVisible = ref(false)
+const qrLoading = ref(false)
+const qrCodeUrl = ref('')
+const qrSessionId = ref('')
+const qrStatus = ref('waiting') // waiting, success, error
+const statusText = ref('等待扫码')
+let qrCheckTimer = null
 
 const loginForm = reactive({
   username: '',
@@ -314,6 +377,100 @@ const showDisclaimer = () => {
 const confirmDisclaimer = () => {
   disclaimerVisible.value = false
   ElMessage.success('感谢同意，请登录')
+}
+
+// ========== 扫码登录相关方法 ==========
+
+const showQrLogin = async () => {
+  qrLoginVisible.value = true
+  qrLoading.value = true
+  qrCodeUrl.value = ''
+  qrStatus.value = 'waiting'
+  statusText.value = '等待扫码'
+  
+  try {
+    const result = await authApi.createXianyuQrLogin()
+    qrSessionId.value = result.session_id
+    qrCodeUrl.value = result.qr_code
+    
+    // 开始轮询检查登录状态
+    startQrStatusCheck()
+  } catch (error) {
+    console.error('生成二维码失败:', error)
+    ElMessage.error('生成二维码失败，请重试')
+    qrLoading.value = false
+  }
+}
+
+const startQrStatusCheck = () => {
+  // 每 2 秒检查一次登录状态
+  qrCheckTimer = setInterval(async () => {
+    if (!qrSessionId.value) return
+    
+    try {
+      const result = await authApi.getXianyuQrStatus(qrSessionId.value)
+      
+      if (result.status === 'logged_in') {
+        // 登录成功
+        clearInterval(qrCheckTimer)
+        qrStatus.value = 'success'
+        statusText.value = '登录成功！'
+        qrLoading.value = false
+        
+        // 自动保存 Cookie 到账号管理
+        await saveXianyuCookie(result.cookie, result.user_info)
+      } else if (result.status === 'error') {
+        // 发生错误
+        clearInterval(qrCheckTimer)
+        qrStatus.value = 'error'
+        statusText.value = '登录失败，请重试'
+        qrLoading.value = false
+      }
+      // waiting 状态继续轮询
+    } catch (error) {
+      console.error('检查登录状态失败:', error)
+    }
+  }, 2000)
+}
+
+const saveXianyuCookie = async (cookie, userInfo) => {
+  try {
+    // 调用账号管理 API 保存 Cookie
+    const accountApi = await import('@/api/account')
+    await accountApi.addAccount({
+      name: userInfo?.nick || '闲鱼账号',
+      cookie: cookie
+    })
+    ElMessage.success('账号已保存，可在账号管理中查看')
+  } catch (error) {
+    console.error('保存账号失败:', error)
+    ElMessage.warning('登录成功，但保存账号失败，请手动添加')
+  }
+}
+
+const cancelQrLogin = () => {
+  // 清除定时器
+  if (qrCheckTimer) {
+    clearInterval(qrCheckTimer)
+    qrCheckTimer = null
+  }
+  
+  // 关闭会话
+  if (qrSessionId.value) {
+    authApi.cancelXianyuQrSession(qrSessionId.value).catch(console.error)
+  }
+  
+  qrLoginVisible.value = false
+  qrCodeUrl.value = ''
+  qrSessionId.value = ''
+  qrStatus.value = 'waiting'
+}
+
+const confirmQrLogin = () => {
+  cancelQrLogin()
+  ElMessage.success('登录成功！')
+  // 跳转到账号管理页面
+  router.push('/accounts')
 }
 </script>
 
@@ -778,5 +935,98 @@ const confirmDisclaimer = () => {
   .info-card {
     display: none;
   }
+}
+
+/* 闲鱼扫码登录按钮 */
+.xianyu-login-btn {
+  width: 100%;
+  height: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #faa423 0%, #ff6b2b 100%);
+  border: none;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.xianyu-login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(250, 164, 35, 0.4);
+}
+
+.xianyu-login-btn .el-icon {
+  margin-right: 8px;
+  font-size: 20px;
+}
+
+/* 扫码登录对话框 */
+.qr-login-dialog .qr-login-content {
+  padding: 20px 0;
+  text-align: center;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.qr-intro {
+  color: #666;
+}
+
+.qr-intro-icon {
+  font-size: 80px;
+  color: #faa423;
+  margin-bottom: 20px;
+}
+
+.qr-code-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.qr-code-image {
+  width: 280px;
+  height: 280px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.qr-hint {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+.qr-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  background: #f0f0f0;
+  color: #666;
+}
+
+.qr-status.waiting {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.qr-status.success {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.qr-status.error {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.qr-status .el-icon {
+  font-size: 18px;
 }
 </style>

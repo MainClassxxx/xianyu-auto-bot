@@ -10,9 +10,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import random
 import string
+import base64
+import io
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.user import User
+from app.services.xianyu_oauth import xianyu_oauth
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
 
@@ -29,9 +32,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 # 验证码存储（生产环境应该用 Redis）
 verification_codes = {}
-
-# 闲鱼登录会话存储（简化实现）
-xianyu_sessions = {}
 
 class UserRegister(BaseModel):
     username: str
@@ -239,80 +239,102 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         "created_at": current_user.created_at
     }
 
-@router.post("/xianyu")
-async def create_xianyu_login_session(
-    headless: bool = True,
+@router.post("/xianyu/qr")
+async def create_xianyu_qr_login(
+    headless: bool = False,
     db: Session = Depends(get_db)
 ):
-    """创建闲鱼登录会话"""
-    session_id = f"xianyu_{int(datetime.now().timestamp())}"
+    """创建闲鱼二维码登录会话"""
+    import uuid
     
-    # 存储会话状态
-    xianyu_sessions[session_id] = {
-        "status": "waiting",
-        "created_at": datetime.now(),
-        "cookie": None,
-        "user_info": None
-    }
+    session_id = str(uuid.uuid4())
     
-    return {
-        "session_id": session_id,
-        "login_url": "https://goofish.com/",
-        "message": "请在新打开的浏览器窗口中登录闲鱼账号"
-    }
-
-@router.get("/xianyu/{session_id}")
-async def get_xianyu_login_status(
-    session_id: str,
-    db: Session = Depends(get_db)
-):
-    """检查闲鱼登录状态"""
-    session = xianyu_sessions.get(session_id)
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="会话不存在")
-    
-    # 如果状态是 logged_in，返回成功
-    if session["status"] == "logged_in":
+    try:
+        # 创建登录会话
+        login_url = await xianyu_oauth.create_login_session(session_id, headless=headless)
+        
+        # 生成登录二维码
+        import qrcode
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(login_url)
+        qr.make(fit=True)
+        
+        # 生成二维码图片
+        img = qr.make_image(fill_color="black", back_color="white")
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        qr_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+        
         return {
-            "status": "logged_in",
-            "cookie": session["cookie"],
-            "user_info": session["user_info"]
+            "session_id": session_id,
+            "qr_code": f"data:image/png;base64,{qr_base64}",
+            "login_url": login_url,
+            "message": "请使用闲鱼 APP 扫描二维码登录"
         }
-    
-    # 否则返回等待状态
-    return {
-        "status": "waiting",
-        "message": "等待登录完成"
-    }
+    except Exception as e:
+        logger.error(f"创建二维码登录失败：{e}")
+        raise HTTPException(status_code=500, detail=f"创建登录会话失败：{str(e)}")
 
-@router.post("/xianyu/{session_id}/complete")
-async def complete_xianyu_login(
+@router.get("/xianyu/{session_id}/status")
+async def get_xianyu_qr_status(
     session_id: str,
-    cookie: str,
-    nick: str = "闲鱼用户"
+    db: Session = Depends(get_db)
 ):
-    """手动完成闲鱼登录（用于测试）"""
-    session = xianyu_sessions.get(session_id)
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="会话不存在")
-    
-    # 更新会话状态为已登录
-    session["status"] = "logged_in"
-    session["cookie"] = cookie
-    session["user_info"] = {"nick": nick}
-    
-    return {
-        "success": True,
-        "message": "登录成功"
-    }
+    """检查闲鱼二维码登录状态"""
+    try:
+        result = await xianyu_oauth.check_login_status(session_id)
+        
+        if result["status"] == "not_found":
+            raise HTTPException(status_code=404, detail="会话不存在")
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"检查登录状态失败：{e}")
+        raise HTTPException(status_code=500, detail=f"检查登录状态失败：{str(e)}")
 
 @router.delete("/xianyu/{session_id}")
-async def cancel_xianyu_login_session(
+async def cancel_xianyu_qr_session(
     session_id: str
 ):
     """取消闲鱼登录会话"""
-    if session_id in xianyu_sessions:
-        del xianyu_sessions[session_id]
-    return {"success": True}
+    try:
+        await xianyu_oauth.close_session(session_id)
+        return {"success": True, "message": "会话已关闭"}
+    except Exception as e:
+        logger.error(f"关闭会话失败：{e}")
+        raise HTTPException(status_code=500, detail=f"关闭会话失败：{str(e)}")
+
+@router.post("/xianyu/test-cookie")
+async def test_xianyu_cookie(
+    cookie: str,
+    db: Session = Depends(get_db)
+):
+    """测试闲鱼 Cookie 是否有效"""
+    from app.services.xianyu_api import xianyu_manager
+    
+    try:
+        # 创建临时客户端测试
+        device_id = f"test_{int(datetime.now().timestamp())}"
+        client = xianyu_manager.XianyuClient(cookie, device_id)
+        is_valid = await client.test_connection()
+        
+        if is_valid:
+            return {
+                "valid": True,
+                "message": "Cookie 有效",
+                "account_info": client.account_info
+            }
+        else:
+            return {
+                "valid": False,
+                "message": "Cookie 无效，无法连接闲鱼"
+            }
+    except Exception as e:
+        logger.error(f"测试 Cookie 失败：{e}")
+        return {
+            "valid": False,
+            "message": f"测试失败：{str(e)}"
+        }
