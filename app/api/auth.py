@@ -284,17 +284,30 @@ async def get_xianyu_qr_status(
     db: Session = Depends(get_db)
 ):
     """检查闲鱼二维码登录状态"""
+    from loguru import logger
+    
     try:
+        logger.info(f"🔍 检查登录状态：{session_id}")
         result = await xianyu_oauth.check_login_status(session_id)
         
         if result["status"] == "not_found":
+            logger.warning(f"⚠️ 会话不存在：{session_id}")
             raise HTTPException(status_code=404, detail="会话不存在")
+        
+        logger.info(f"📊 登录状态：{result['status']}")
+        
+        # 登录成功时记录详细信息
+        if result["status"] == "logged_in":
+            logger.info(f"✅ 登录成功！用户：{result.get('user_info', {}).get('nick', 'Unknown')}")
+            logger.info(f"📝 Cookie 长度：{len(result.get('cookie', ''))} 字符")
         
         return result
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"检查登录状态失败：{e}")
+        logger.error(f"❌ 检查登录状态失败：{e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"检查登录状态失败：{str(e)}")
 
 @router.delete("/xianyu/{session_id}")

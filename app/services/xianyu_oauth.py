@@ -118,8 +118,25 @@ class XianyuOAuthService:
     async def _check_if_logged_in(self, page: Page) -> bool:
         """检查是否已登录 - 严格模式"""
         try:
-            # 必须找到用户信息相关元素才能判断为已登录
-            # 这些元素只有在真正登录成功后才会显示
+            current_url = page.url
+            
+            # 1. 首先检查 URL，如果还在登录页则未登录
+            if any(keyword in current_url.lower() for keyword in ["login", "signin", "auth"]):
+                logger.debug(f"⏳ 仍在登录页：{current_url}")
+                return False
+            
+            # 2. 检查 Cookie 中是否有登录标识
+            cookies = await page.context.cookies()
+            login_cookies = [
+                c for c in cookies 
+                if any(name in c.get('name', '').lower() for name in ['_tb_token_', 'cookie2', 'sgcookie'])
+            ]
+            
+            if login_cookies:
+                logger.info(f"✅ 检测到登录 Cookie: {[c['name'] for c in login_cookies]}")
+                return True
+            
+            # 3. 检查页面元素
             selectors = [
                 ".avatar-img",           # 用户头像
                 ".user-avatar",          # 用户头像备选
@@ -129,35 +146,26 @@ class XianyuOAuthService:
                 "[data-testid='user-avatar']",  # 测试 ID
                 ".user-center",          # 用户中心
                 ".my-page",              # 我的页面
+                ".avatar",               # 头像简写
             ]
             
-            found_selector = None
             for selector in selectors:
                 try:
-                    element = await page.wait_for_selector(selector, timeout=1500)
+                    element = await page.wait_for_selector(selector, timeout=1000)
                     if element:
-                        found_selector = selector
                         logger.info(f"✅ 找到登录标识元素：{selector}")
-                        break
+                        return True
                 except:
                     continue
             
-            if not found_selector:
-                # 没有找到用户元素，检查 URL 和页面内容
-                current_url = page.url
-                page_content = await page.content()
-                
-                # 只有当 URL 包含用户相关路径且有用户信息时才判断为登录
-                if "login" not in current_url.lower():
-                    # 检查页面是否包含"退出登录"或"个人中心"等字样
-                    if "退出" in page_content or "个人中心" in page_content or "我的" in page_content:
-                        logger.info(f"✅ 通过页面内容判断已登录：{current_url}")
-                        return True
-                
-                logger.debug(f"❌ 未检测到登录状态，当前 URL: {current_url}")
-                return False
+            # 4. 检查页面内容
+            page_content = await page.content()
+            if "退出登录" in page_content or "个人中心" in page_content or "我的闲鱼" in page_content:
+                logger.info(f"✅ 通过页面内容判断已登录")
+                return True
             
-            return True
+            logger.debug(f"❌ 未检测到登录状态，当前 URL: {current_url}")
+            return False
             
         except Exception as e:
             logger.error(f"❌ 检查登录状态错误：{e}")
@@ -218,4 +226,19 @@ class XianyuOAuthService:
 
 
 # 全局服务实例
+xianyu_oauth = XianyuOAuthService()
+.browser:
+            await self.browser.close()
+            self.browser = None
+        
+        if self.playwright:
+            await self.playwright.stop()
+            self.playwright = None
+        
+        logger.info("👋 浏览器已关闭")
+
+
+# 全局服务实例
+xianyu_oauth = XianyuOAuthService()
+�务实例
 xianyu_oauth = XianyuOAuthService()

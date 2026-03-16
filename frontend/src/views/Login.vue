@@ -386,32 +386,51 @@ const showQrLogin = async () => {
   qrLoading.value = true
   qrCodeUrl.value = ''
   qrStatus.value = 'waiting'
-  statusText.value = '等待扫码'
+  statusText.value = '正在生成二维码...'
   
   try {
+    console.log('🔑 开始创建闲鱼登录会话')
     const result = await authApi.createXianyuQrLogin()
+    
+    console.log('✅ 登录会话创建成功:', result.session_id)
+    
     qrSessionId.value = result.session_id
     qrCodeUrl.value = result.qr_code
     
+    // 等待二维码加载完成
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    qrLoading.value = false
+    qrStatus.value = 'waiting'
+    statusText.value = '等待扫码'
+    
     // 开始轮询检查登录状态
     startQrStatusCheck()
+    
+    ElMessage.success('二维码已生成，请使用闲鱼 APP 扫码')
   } catch (error) {
-    console.error('生成二维码失败:', error)
+    console.error('❌ 生成二维码失败:', error)
     ElMessage.error('生成二维码失败，请重试')
     qrLoading.value = false
   }
 }
 
 const startQrStatusCheck = () => {
+  console.log('⏳ 开始轮询检查登录状态')
+  
   // 每 2 秒检查一次登录状态
   qrCheckTimer = setInterval(async () => {
     if (!qrSessionId.value) return
     
     try {
       const result = await authApi.getXianyuQrStatus(qrSessionId.value)
+      console.log('📊 登录状态检查:', result.status)
       
       if (result.status === 'logged_in') {
         // 登录成功
+        console.log('✅ 登录成功！用户:', result.user_info)
+        console.log('📝 Cookie 长度:', result.cookie?.length)
+        
         clearInterval(qrCheckTimer)
         qrStatus.value = 'success'
         statusText.value = '登录成功！'
@@ -421,9 +440,10 @@ const startQrStatusCheck = () => {
         await saveXianyuCookie(result.cookie, result.user_info)
       } else if (result.status === 'error') {
         // 发生错误
+        console.error('❌ 登录错误:', result.message)
         clearInterval(qrCheckTimer)
         qrStatus.value = 'error'
-        statusText.value = '登录失败，请重试'
+        statusText.value = result.message || '登录失败，请重试'
         qrLoading.value = false
       }
       // waiting 状态继续轮询
@@ -435,20 +455,31 @@ const startQrStatusCheck = () => {
 
 const saveXianyuCookie = async (cookie, userInfo) => {
   try {
+    console.log('💾 开始保存 Cookie 到账号管理')
+    
     // 调用账号管理 API 保存 Cookie
     const accountApi = await import('@/api/account')
-    await accountApi.addAccount({
-      name: userInfo?.nick || '闲鱼账号',
-      cookie: cookie
-    })
-    ElMessage.success('账号已保存，可在账号管理中查看')
+    const accountData = {
+      name: userInfo?.nick || `闲鱼账号_${Date.now()}` ,
+      cookie: cookie,
+      device_id: `device_${Date.now()}`
+    }
+    
+    console.log('📝 保存账号数据:', { name: accountData.name, cookie_length: cookie?.length })
+    
+    const saveResult = await accountApi.addAccount(accountData)
+    console.log('✅ 账号保存成功:', saveResult)
+    
+    ElMessage.success(`账号"${accountData.name}"已保存到账号管理`)
   } catch (error) {
-    console.error('保存账号失败:', error)
+    console.error('❌ 保存账号失败:', error)
     ElMessage.warning('登录成功，但保存账号失败，请手动添加')
   }
 }
 
 const cancelQrLogin = () => {
+  console.log('❌ 取消登录')
+  
   // 清除定时器
   if (qrCheckTimer) {
     clearInterval(qrCheckTimer)
@@ -457,16 +488,20 @@ const cancelQrLogin = () => {
   
   // 关闭会话
   if (qrSessionId.value) {
-    authApi.cancelXianyuQrSession(qrSessionId.value).catch(console.error)
+    authApi.cancelXianyuQrSession(qrSessionId.value)
+      .then(() => console.log('✅ 会话已关闭'))
+      .catch(console.error)
   }
   
   qrLoginVisible.value = false
   qrCodeUrl.value = ''
   qrSessionId.value = ''
   qrStatus.value = 'waiting'
+  qrLoading.value = false
 }
 
 const confirmQrLogin = () => {
+  console.log('✅ 确认登录')
   cancelQrLogin()
   ElMessage.success('登录成功！')
   // 跳转到账号管理页面
