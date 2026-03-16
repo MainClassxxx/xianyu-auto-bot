@@ -9,6 +9,9 @@ from datetime import datetime
 # 独立的 Base（用于模型定义）
 ModelBase = declarative_base()
 
+# 导入所有模型（方便统一创建表）
+from app.models.user import User, APILog, AdminOperationLog
+
 class Account(ModelBase):
     """闲鱼账号"""
     __tablename__ = 'accounts'

@@ -38,7 +38,9 @@ class UserRegister(BaseModel):
     email: str
     password: str
     captcha: str
+    captcha_id: str
     email_code: Optional[str] = None
+    invite_code: Optional[str] = None  # 邀请码（预留）
 
 class UserLogin(BaseModel):
     username: str
@@ -324,6 +326,39 @@ async def test_xianyu_cookie(
         if is_valid:
             return {
                 "valid": True,
+                "message": "Cookie 有效",
+                "account_info": client.account_info
+            }
+        else:
+            return {
+                "valid": False,
+                "message": "Cookie 无效，无法连接闲鱼"
+            }
+    except Exception as e:
+        logger.error(f"测试 Cookie 失败：{e}")
+        return {
+            "valid": False,
+            "message": f"测试失败：{str(e)}"
+        }
+   "valid": True,
+                "message": "Cookie 有效",
+                "account_info": client.account_info
+            }
+        else:
+            return {
+                "valid": False,
+                "message": "Cookie 无效，无法连接闲鱼"
+            }
+    except Exception as e:
+        logger.error(f"测试 Cookie 失败：{e}")
+        return {
+            "valid": False,
+            "message": f"测试失败：{str(e)}"
+        }
+          "valid": False,
+            "message": f"测试失败：{str(e)}"
+        }
+ue,
                 "message": "Cookie 有效",
                 "account_info": client.account_info
             }
