@@ -8,7 +8,7 @@ pydantic-settings>=2.1.0
 # 闲鱼 API 相关
 httpx>=0.26.0
 websockets>=12.0
-aiohttp>=3.9.0
+aiohttp>=3.13.5
 
 # 图像处理 (电影票截图检测)
 Pillow>=10.2.0
@@ -45,5 +45,5 @@ openai>=1.10.0
 playwright>=1.40.0
 
 # OAuth 登录
-aiohttp>=3.9.0
+aiohttp>=3.13.5
 qrcode[pil]>=7.4.0
