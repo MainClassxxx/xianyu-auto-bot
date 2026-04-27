@@ -46,4 +46,4 @@ playwright>=1.40.0
 
 # OAuth 登录
 aiohttp>=3.9.0
-qrcode[pil]>=7.4.0
+qrcode[pil]>=8.2
