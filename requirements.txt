@@ -31,7 +31,7 @@ sqlalchemy>=2.0.0
 aiosqlite>=0.19.0
 
 # 通知推送
-requests>=2.31.0
+requests>=2.33.1
 
 # 工具库
 python-dotenv>=1.0.0
