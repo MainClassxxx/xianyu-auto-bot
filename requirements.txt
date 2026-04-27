@@ -12,7 +12,7 @@ aiohttp>=3.9.0
 
 # 图像处理 (电影票截图检测)
 Pillow>=10.2.0
-pytesseract>=0.3.10
+pytesseract>=0.3.13
 opencv-python-headless>=4.9.0
 numpy>=1.26.0
 
